@@ -2941,24 +2941,32 @@
         var fr = parseFloat(fabEl.style.right)  || 36;
         var fb = parseFloat(fabEl.style.bottom) || 36;
         var fabSize = 56;
+        // FAB center in viewport coords
         var cx = vw - fr - fabSize / 2;
         var cy = vh - fb - fabSize / 2;
-        var isRight  = cx > vw / 2;
-        var isBottom = cy > vh / 2;
+        var isRight  = cx > vw / 2;   // FAB on right half → pills align right
+        var isBottom = cy > vh / 2;   // FAB on bottom half → pills go up
 
+        // Vertical: pills open away from the nearest edge
         pillsEl.style.flexDirection = isBottom ? 'column-reverse' : 'column';
         if (isBottom) {
+          // FAB near bottom → pills go upward
           pillsEl.style.bottom = (fb + fabSize + 8) + 'px';
           pillsEl.style.top    = '';
         } else {
-          pillsEl.style.top    = (vh - cy - fabSize / 2) + 'px';
+          // FAB near top → pills go downward
+          pillsEl.style.top    = (vh - fb - fabSize) + 'px';
           pillsEl.style.bottom = '';
         }
+
+        // Horizontal: pills align to the FAB's edge, opening toward center
         if (isRight) {
+          // FAB on right half → pills align to right edge of FAB
           pillsEl.style.right = fr + 'px';
           pillsEl.style.left  = '';
           pillsEl.style.alignItems = 'flex-end';
         } else {
+          // FAB on left half → pills align to left edge of FAB
           pillsEl.style.left  = (vw - fr - fabSize) + 'px';
           pillsEl.style.right = '';
           pillsEl.style.alignItems = 'flex-start';
