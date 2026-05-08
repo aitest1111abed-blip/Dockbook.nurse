@@ -1709,12 +1709,8 @@
 
     /* ── Desktop Speed Dial ── */
     #desktopSpeedDial {
-      position: fixed; z-index: 310; display: none;
+      position: fixed; bottom: 36px; left: 36px; z-index: 310; display: none;
       touch-action: none; cursor: grab;
-      opacity: 0; transition: opacity 0.15s;
-    }
-    @media (min-width: 768px) {
-      #desktopSpeedDial { display: block; }
     }
     #desktopSpeedDial.dragging { cursor: grabbing; }
     #desktopSpeedDial .fab-trigger { cursor: inherit; }
@@ -2451,7 +2447,7 @@
     </button>
   </div>
   <!-- الزر الرئيسي فقط -->
-  <div id="desktopSpeedDial">
+  <div id="desktopSpeedDial" style="display:none;">
     <button class="fab-trigger" id="desktopFabMain" onclick="toggleFabDial()" title="قائمة سريعة">
       <div class="fab-plus-icon"></div>
     </button>
@@ -2932,21 +2928,11 @@
       function saveFabPos(pos) {
         try { localStorage.setItem(FAB_KEY, JSON.stringify(pos)); } catch(e) {}
       }
-      function clampPos(pos) {
-        var vw = window.innerWidth;
-        var vh = window.innerHeight;
-        var size = 56, margin = 8;
-        return {
-          right:  Math.max(margin, Math.min(vw - size - margin, pos.right)),
-          bottom: Math.max(margin, Math.min(vh - size - margin, pos.bottom))
-        };
-      }
       function applyFabPos(pos) {
-        var c = clampPos(pos);
         fabEl.style.left   = '';
         fabEl.style.top    = '';
-        fabEl.style.right  = c.right  + 'px';
-        fabEl.style.bottom = c.bottom + 'px';
+        fabEl.style.right  = pos.right  + 'px';
+        fabEl.style.bottom = pos.bottom + 'px';
       }
       function calcPillsLayout() {
         if (!pillsEl || !fabEl) return;
@@ -2996,12 +2982,8 @@
         pillsEl = document.getElementById('desktopPills');
         if (!fabEl) return;
 
-        // Apply saved position THEN show — prevents flash at default CSS position
         var pos = getFabPos();
         applyFabPos(pos);
-        requestAnimationFrame(function() {
-          fabEl.style.opacity = '1';
-        });
 
         var startX, startY, startRight, startBottom, dragging = false;
 
@@ -3024,9 +3006,9 @@
           dragging    = true;
           _wasDragged = true;
           fabEl.classList.add('dragging');
-          // right decreases when moving right, bottom decreases when moving down
-          var newRight  = startRight  - dx;
-          var newBottom = startBottom - dy;
+          var vw = window.innerWidth, vh = window.innerHeight, size = 56;
+          var newRight  = Math.max(0, Math.min(vw - size, startRight  - dx));
+          var newBottom = Math.max(0, Math.min(vh - size, startBottom + dy));
           applyFabPos({ right: newRight, bottom: newBottom });
           calcPillsLayout();
         }
@@ -3041,11 +3023,7 @@
         }
 
         fabEl.addEventListener('pointerdown', onPointerDown);
-        window.addEventListener('resize', function() {
-          var cur = { right: parseFloat(fabEl.style.right)||36, bottom: parseFloat(fabEl.style.bottom)||36 };
-          applyFabPos(cur);
-          calcPillsLayout();
-        });
+        window.addEventListener('resize', calcPillsLayout);
       }
 
       document.addEventListener('DOMContentLoaded', initDraggableFab);
