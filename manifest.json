@@ -4,7 +4,7 @@
   "description": "لوحة الممرضة",
   "start_url": "./",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "any",
   "background_color": "#f0fdfa",
   "theme_color": "#0d9488",
   "lang": "ar",
