@@ -1709,8 +1709,12 @@
 
     /* ── Desktop Speed Dial ── */
     #desktopSpeedDial {
-      position: fixed; bottom: 36px; left: 36px; z-index: 310; display: none;
+      position: fixed; z-index: 310; display: none;
       touch-action: none; cursor: grab;
+      opacity: 0; transition: opacity 0.15s;
+    }
+    @media (min-width: 768px) {
+      #desktopSpeedDial { display: block; }
     }
     #desktopSpeedDial.dragging { cursor: grabbing; }
     #desktopSpeedDial .fab-trigger { cursor: inherit; }
@@ -2447,7 +2451,7 @@
     </button>
   </div>
   <!-- الزر الرئيسي فقط -->
-  <div id="desktopSpeedDial" style="display:none;">
+  <div id="desktopSpeedDial">
     <button class="fab-trigger" id="desktopFabMain" onclick="toggleFabDial()" title="قائمة سريعة">
       <div class="fab-plus-icon"></div>
     </button>
@@ -2928,11 +2932,21 @@
       function saveFabPos(pos) {
         try { localStorage.setItem(FAB_KEY, JSON.stringify(pos)); } catch(e) {}
       }
+      function clampPos(pos) {
+        var vw = window.innerWidth;
+        var vh = window.innerHeight;
+        var size = 56, margin = 8;
+        return {
+          right:  Math.max(margin, Math.min(vw - size - margin, pos.right)),
+          bottom: Math.max(margin, Math.min(vh - size - margin, pos.bottom))
+        };
+      }
       function applyFabPos(pos) {
+        var c = clampPos(pos);
         fabEl.style.left   = '';
         fabEl.style.top    = '';
-        fabEl.style.right  = pos.right  + 'px';
-        fabEl.style.bottom = pos.bottom + 'px';
+        fabEl.style.right  = c.right  + 'px';
+        fabEl.style.bottom = c.bottom + 'px';
       }
       function calcPillsLayout() {
         if (!pillsEl || !fabEl) return;
@@ -2941,34 +2955,36 @@
         var fr = parseFloat(fabEl.style.right)  || 36;
         var fb = parseFloat(fabEl.style.bottom) || 36;
         var fabSize = 56;
-        // FAB center in viewport coords
-        var cx = vw - fr - fabSize / 2;
-        var cy = vh - fb - fabSize / 2;
-        var isRight  = cx > vw / 2;   // FAB on right half → pills align right
-        var isBottom = cy > vh / 2;   // FAB on bottom half → pills go up
+        var gap = 8;
 
-        // Vertical: pills open away from the nearest edge
-        pillsEl.style.flexDirection = isBottom ? 'column-reverse' : 'column';
-        if (isBottom) {
-          // FAB near bottom → pills go upward
-          pillsEl.style.bottom = (fb + fabSize + 8) + 'px';
-          pillsEl.style.top    = '';
+        var pillH   = 52;
+        var pillGap = 10;
+        var count   = pillsEl.querySelectorAll('.fab-pill').length;
+        var totalH  = count * pillH + (count - 1) * pillGap;
+
+        var spaceAbove = vh - fb - fabSize;
+        var spaceBelow = fb;
+        var openUp = spaceAbove >= spaceBelow;
+
+        pillsEl.style.flexDirection = openUp ? 'column-reverse' : 'column';
+        pillsEl.style.top    = '';
+        pillsEl.style.bottom = '';
+
+        if (openUp) {
+          pillsEl.style.bottom = (fb + fabSize + gap) + 'px';
         } else {
-          // FAB near top → pills go downward
-          pillsEl.style.top    = (vh - fb - fabSize) + 'px';
-          pillsEl.style.bottom = '';
+          pillsEl.style.bottom = (fb - totalH - gap) + 'px';
         }
 
-        // Horizontal: pills align to the FAB's edge, opening toward center
+        var fabLeftEdge = vw - fr - fabSize;
+        var isRight = fr < vw / 2;
         if (isRight) {
-          // FAB on right half → pills align to right edge of FAB
-          pillsEl.style.right = fr + 'px';
-          pillsEl.style.left  = '';
+          pillsEl.style.right      = fr + 'px';
+          pillsEl.style.left       = '';
           pillsEl.style.alignItems = 'flex-end';
         } else {
-          // FAB on left half → pills align to left edge of FAB
-          pillsEl.style.left  = (vw - fr - fabSize) + 'px';
-          pillsEl.style.right = '';
+          pillsEl.style.left       = fabLeftEdge + 'px';
+          pillsEl.style.right      = '';
           pillsEl.style.alignItems = 'flex-start';
         }
       }
@@ -2982,8 +2998,12 @@
         pillsEl = document.getElementById('desktopPills');
         if (!fabEl) return;
 
+        // Apply saved position THEN show — prevents flash at default CSS position
         var pos = getFabPos();
         applyFabPos(pos);
+        requestAnimationFrame(function() {
+          fabEl.style.opacity = '1';
+        });
 
         var startX, startY, startRight, startBottom, dragging = false;
 
@@ -3006,9 +3026,9 @@
           dragging    = true;
           _wasDragged = true;
           fabEl.classList.add('dragging');
-          var vw = window.innerWidth, vh = window.innerHeight, size = 56;
-          var newRight  = Math.max(0, Math.min(vw - size, startRight  - dx));
-          var newBottom = Math.max(0, Math.min(vh - size, startBottom + dy));
+          // right decreases when moving right, bottom decreases when moving down
+          var newRight  = startRight  - dx;
+          var newBottom = startBottom - dy;
           applyFabPos({ right: newRight, bottom: newBottom });
           calcPillsLayout();
         }
@@ -3023,7 +3043,11 @@
         }
 
         fabEl.addEventListener('pointerdown', onPointerDown);
-        window.addEventListener('resize', calcPillsLayout);
+        window.addEventListener('resize', function() {
+          var cur = { right: parseFloat(fabEl.style.right)||36, bottom: parseFloat(fabEl.style.bottom)||36 };
+          applyFabPos(cur);
+          calcPillsLayout();
+        });
       }
 
       document.addEventListener('DOMContentLoaded', initDraggableFab);
