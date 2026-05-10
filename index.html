@@ -1103,9 +1103,9 @@
     /* بطاقة الأجندة عندما الموعد خلال 6 ساعات */
     .agenda-card.reminder-due,
     .appt-card.reminder-due {
-      border-color: #fbbf24 !important;
-      border-width: 2px !important;
-      background: linear-gradient(135deg, #fffbeb 0%, #ffffff 60%) !important;
+      border-color: #fbbf24;
+      border-width: 2px;
+      background: linear-gradient(135deg, #fffbeb 0%, #ffffff 60%);
     }
     .reminder-due-badge {
       display: inline-flex;
@@ -4358,18 +4358,13 @@
 
     function _restoreCardAfterReminder(id) {
       if (!_reminderActiveBtn) return;
-      // Find card BEFORE removing the button
       const card = document.querySelector(`[data-card-id="${id}"]`) ||
                    _reminderActiveBtn.closest('.agenda-card, .appt-card');
-      // Remove bell button
       _reminderActiveBtn.remove();
-      // Clean up card
       if (card) {
         const badge = card.querySelector('.reminder-due-badge');
         if (badge) badge.remove();
         card.classList.remove('reminder-due');
-        card.style.borderColor = '';
-        card.style.background  = '';
       }
     }
 
