@@ -5402,7 +5402,11 @@
       var _alertTimer = null;
       var _alertSoundTimer = null;
       var _lastAlertTs = 0;
-      var _dismissedTs = 0;
+      var DISMISSED_KEY = 'nurseAlertDismissed';
+
+      function getDismissedTs() {
+        return parseInt(localStorage.getItem(DISMISSED_KEY) || '0', 10);
+      }
 
       function playAlertSound() {
         try {
@@ -5461,8 +5465,8 @@
         if (banner) banner.classList.remove('show');
         clearTimeout(_alertTimer);
         clearInterval(_alertSoundTimer);
-        // mark as dismissed so polling skips it
-        _dismissedTs = _lastAlertTs;
+        // persist dismissed ts so page refresh doesn't re-trigger
+        if (_lastAlertTs) localStorage.setItem(DISMISSED_KEY, String(_lastAlertTs));
       };
 
       function handleChange(key) {
@@ -5474,9 +5478,8 @@
             var payload = JSON.parse(raw);
             if (!payload || !payload.type) return;
             var ts = payload.ts || 0;
-            // skip if already dismissed or already showing this exact alert
-            if (ts === _dismissedTs || ts === _lastAlertTs) return;
-            // skip if older than 60 seconds (stale from previous session)
+            if (ts === _lastAlertTs) return;
+            if (ts <= getDismissedTs()) return;
             if (Date.now() - ts > 60000) return;
             window.showDoctorAlert(payload);
           } catch(e) {}
@@ -5522,7 +5525,7 @@
       if (bcNurse) bcNurse.onmessage = function(e) {
         if (e.data && e.data.type) {
           var ts = e.data.ts || 0;
-          if (ts !== _dismissedTs) window.showDoctorAlert(e.data);
+          if (ts > getDismissedTs() && ts !== _lastAlertTs) window.showDoctorAlert(e.data);
         }
       };
 
