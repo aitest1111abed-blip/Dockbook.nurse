@@ -5408,18 +5408,46 @@
         return parseInt(localStorage.getItem(DISMISSED_KEY) || '0', 10);
       }
 
+      var _audioCtx = null;
+      function getAudioCtx() {
+        if (!_audioCtx || _audioCtx.state === 'closed') {
+          try { _audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { return null; }
+        }
+        return _audioCtx;
+      }
+
+      // استعداد مبكر — نفتح AudioContext عند أول تفاعل للمستخدم
+      function primeAudio() {
+        var ctx = getAudioCtx();
+        if (ctx && ctx.state === 'suspended') ctx.resume();
+        document.removeEventListener('click', primeAudio);
+        document.removeEventListener('touchstart', primeAudio);
+        document.removeEventListener('keydown', primeAudio);
+      }
+      document.addEventListener('click', primeAudio);
+      document.addEventListener('touchstart', primeAudio);
+      document.addEventListener('keydown', primeAudio);
+
       function playAlertSound() {
-        try {
-          var ctx = new (window.AudioContext || window.webkitAudioContext)();
-          [0, 0.18, 0.36].forEach(function(t) {
-            var o = ctx.createOscillator(), g = ctx.createGain();
-            o.connect(g); g.connect(ctx.destination);
-            o.type = 'sine'; o.frequency.value = 880;
-            g.gain.setValueAtTime(0.35, ctx.currentTime + t);
-            g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.22);
-            o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.22);
-          });
-        } catch(e) {}
+        var ctx = getAudioCtx();
+        if (!ctx) return;
+        function doPlay() {
+          try {
+            [0, 0.2, 0.4].forEach(function(t) {
+              var o = ctx.createOscillator(), g = ctx.createGain();
+              o.connect(g); g.connect(ctx.destination);
+              o.type = 'sine'; o.frequency.value = 880;
+              g.gain.setValueAtTime(0.4, ctx.currentTime + t);
+              g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.25);
+              o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.25);
+            });
+          } catch(e) {}
+        }
+        if (ctx.state === 'suspended') {
+          ctx.resume().then(doPlay).catch(function() {});
+        } else {
+          doPlay();
+        }
       }
 
       window.showDoctorAlert = function(payload) {
