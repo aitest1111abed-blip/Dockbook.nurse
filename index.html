@@ -4341,20 +4341,34 @@
       _reminderActivePhone= null;
     };
 
+    function _restoreCardAfterReminder(id) {
+      // Remove bell button
+      if (_reminderActiveBtn) _reminderActiveBtn.remove();
+      // Remove "موعد قريب" badge
+      const card = _reminderActiveBtn ? _reminderActiveBtn.closest('.agenda-card') : null;
+      if (card) {
+        const badge = card.querySelector('.reminder-due-badge');
+        if (badge) badge.remove();
+        card.classList.remove('reminder-due');
+        card.style.borderColor = '';
+        card.style.background  = '';
+      }
+    }
+
     window.confirmReminderSent = function() {
       if (_reminderActiveId) {
         markReminderSent(_reminderActiveId);
-        if (_reminderActiveBtn) {
-          _reminderActiveBtn.classList.add('sent');
-          _reminderActiveBtn.title = 'تم إرسال التذكير ✓';
-          _reminderActiveBtn.innerHTML = ICON.check;
-        }
+        _restoreCardAfterReminder(_reminderActiveId);
         showToast('تم تسجيل إرسال التذكير ✓', 'success');
       }
       closeReminderConfirmModal();
     };
 
     window.dismissReminderSent = function() {
+      if (_reminderActiveId) {
+        markReminderSent(_reminderActiveId);
+        _restoreCardAfterReminder(_reminderActiveId);
+      }
       showToast('لم يتم الإرسال — يمكنك المحاولة مجدداً', 'error');
       closeReminderConfirmModal();
     };
