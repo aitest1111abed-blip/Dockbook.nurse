@@ -4357,19 +4357,19 @@
     };
 
     function _restoreCardAfterReminder(id) {
-      if (_reminderActiveBtn) {
-        // Remove bell button
-        _reminderActiveBtn.remove();
-        // Find parent card (works for both agenda-card and appt-card)
-        const card = document.querySelector(`[data-card-id="${id}"]`) ||
-                     _reminderActiveBtn.closest('.agenda-card, .appt-card');
-        if (card) {
-          const badge = card.querySelector('.reminder-due-badge');
-          if (badge) badge.remove();
-          card.classList.remove('reminder-due');
-          card.style.borderColor = '';
-          card.style.background  = '';
-        }
+      if (!_reminderActiveBtn) return;
+      // Find card BEFORE removing the button
+      const card = document.querySelector(`[data-card-id="${id}"]`) ||
+                   _reminderActiveBtn.closest('.agenda-card, .appt-card');
+      // Remove bell button
+      _reminderActiveBtn.remove();
+      // Clean up card
+      if (card) {
+        const badge = card.querySelector('.reminder-due-badge');
+        if (badge) badge.remove();
+        card.classList.remove('reminder-due');
+        card.style.borderColor = '';
+        card.style.background  = '';
       }
     }
 
