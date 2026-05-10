@@ -311,25 +311,6 @@
     /* ============================================================
        TOAST
        ============================================================ */
-    /* ── Confirm Bottom-Sheet ── */
-    #confirmSheet {
-      position: fixed; inset: 0; z-index: 9999;
-      display: flex; align-items: flex-end; justify-content: center;
-      background: rgba(19,78,74,0.35);
-      opacity: 0; pointer-events: none;
-      transition: opacity .2s;
-    }
-    #confirmSheet.show { opacity: 1; pointer-events: all; }
-    #confirmSheet .sheet-box {
-      background: var(--surface); border-radius: 20px 20px 0 0;
-      border: 1.5px solid var(--border); border-bottom: none;
-      box-shadow: var(--shadow-lg);
-      width: 100%; max-width: 480px;
-      padding: 20px;
-      transform: translateY(20px);
-      transition: transform .25s cubic-bezier(.34,1.56,.64,1);
-    }
-    #confirmSheet.show .sheet-box { transform: translateY(0); }
     .toast {
       position: fixed;
       bottom: 24px;
@@ -2180,13 +2161,6 @@
               </div>
 
               <div style="display:grid; grid-template-columns:1fr; gap:16px;">
-                <!-- بحث في مواعيد اليوم -->
-                <div style="position:relative; margin-bottom:-4px;">
-                  <i class="fas fa-search" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:.8rem;pointer-events:none;"></i>
-                  <input type="text" id="agendaSearch" placeholder="ابحث باسم أو هاتف..." oninput="filterAgenda(this.value)"
-                    style="width:100%;padding:8px 32px 8px 10px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);font-family:inherit;font-size:.82rem;box-sizing:border-box;transition:border-color .15s;"
-                    onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'">
-                </div>
                 <div>
                   <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
                     <i class="fas fa-sun" style="color:var(--amber); font-size:.9rem;"></i>
@@ -3252,7 +3226,7 @@
       showToast('تم التحديث','success');
     }
     function deletePatient(id) {
-      nurseConfirm('هل تريد حذف بيانات هذا المريض؟','حذف').then(ok => { if(!ok) return; {
+      if(confirm('حذف المريض؟')) {
         const patients = lsGet(PATIENTS_STORAGE_KEY, {});
         delete patients[id];
         lsSet(PATIENTS_STORAGE_KEY, patients);
@@ -3616,7 +3590,7 @@
       const date = formatDateAr(record.Date);
       const slot = record.Slot==='Morning'?'صباحاً':(record.Slot==='Evening'?'مساءً':'غير معلوم');
       if (status==='Pending') {
-        return `<div class="appt-card" data-patient-name="${escapeHtml(record.PatientName||'')}" data-patient-phone="${escapeHtml(record.Phone||'')}">`
+        return `<div class="appt-card">
           <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
             <div>
               <p style="font-weight:700; font-size:1rem;">${escapeHtml(record.PatientName)}</p>
@@ -3678,9 +3652,9 @@
       }
     }
 
-    function acceptAppointment(id) { nurseConfirm('قبول هذا الموعد؟','قبول').then(ok => { if(ok) updateAppointmentStatus(id,'Accepted'); }); }
+    function acceptAppointment(id) { if(confirm('قبول الموعد؟')) updateAppointmentStatus(id,'Accepted'); }
     function rejectAppointment(id)  { openRejectModal(id); }
-    function cancelAppointment(id)  { nurseConfirm('إلغاء هذا الموعد؟','إلغاء الموعد').then(ok => { if(ok) updateAppointmentStatus(id,'Cancelled'); }); }
+    function cancelAppointment(id)  { if(confirm('إلغاء الموعد؟')) updateAppointmentStatus(id,'Cancelled'); }
 
     // ============================================================
     //   REJECT MODAL — روزنامة اختيار مواعيد التعويض
@@ -4114,7 +4088,6 @@
     function selectDay(dateStr) {
       selectedDayStr=dateStr; renderCalendar(); renderAgendaForDay(dateStr); updateDayStatusBadge(dateStr);
       document.getElementById('dayAgenda').classList.remove('hidden');
-      const s = document.getElementById('agendaSearch'); if(s) s.value='';
     }
     function getPastDayVisits(dateStr) {
       let visits = [];
@@ -4445,7 +4418,7 @@
       const dueBadge = within6h && !sentAlready
         ? `<span class="reminder-due-badge"><i class="fas fa-bell" style="font-size:.6rem;"></i> موعد قريب</span>`
         : '';
-      return `<div class="agenda-card ${within6h ? 'reminder-due' : ''}" data-patient-name="${escapeHtml(record.PatientName||'')}" data-patient-phone="${escapeHtml(record.Phone||'')}">
+      return `<div class="agenda-card ${within6h ? 'reminder-due' : ''}">
         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
           <div>
             <p class="agenda-patient-name">${escapeHtml(record.PatientName)}</p>
@@ -4461,40 +4434,6 @@
         <div style="margin-top:6px; font-size:.75rem; color:var(--primary); font-weight:600;">${record.VisitType}</div>
       </div>`;
     }
-
-
-    // ── بحث في مواعيد اليوم ──
-    window.filterAgenda = function(q) {
-      const term = q.trim().toLowerCase();
-      ['agendaMorning','agendaEvening'].forEach(id => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.querySelectorAll('[data-patient-name],[data-patient-phone]').forEach(card => {
-          const name  = (card.dataset.patientName  || '').toLowerCase();
-          const phone = (card.dataset.patientPhone || '').toLowerCase();
-          card.style.display = (!term || name.includes(term) || phone.includes(term)) ? '' : 'none';
-        });
-      });
-    };
-
-    // ── تأكيد موحد (Bottom-sheet) بديل confirm() ──
-    let _confirmResolve = null;
-    function nurseConfirm(msg, dangerLabel='تأكيد', cancelLabel='إلغاء') {
-      return new Promise(resolve => {
-        _confirmResolve = resolve;
-        document.getElementById('confirmSheetMsg').textContent = msg;
-        document.getElementById('confirmSheetOk').textContent  = dangerLabel;
-        document.getElementById('confirmSheet').classList.add('show');
-      });
-    }
-    window._confirmSheetOk = function() {
-      document.getElementById('confirmSheet').classList.remove('show');
-      if (_confirmResolve) { _confirmResolve(true); _confirmResolve = null; }
-    };
-    window._confirmSheetCancel = function() {
-      document.getElementById('confirmSheet').classList.remove('show');
-      if (_confirmResolve) { _confirmResolve(false); _confirmResolve = null; }
-    };
 
     window.openModalById = function(id) {
       const r=allRecords.find(r=>r.id===id); if(!r) return;
@@ -5654,7 +5593,7 @@
     })();
 
   window.docbookSignOut = function() {
-    nurseConfirm('هل تريد تسجيل الخروج؟','تسجيل الخروج').then(ok => { if (!ok) return;
+    if (!confirm('تأكيد تسجيل الخروج؟')) return;
     localStorage.removeItem('docbookNurseSession');
     var ov = document.getElementById('loginOverlay');
     ov.style.display = 'flex'; ov.style.opacity = '0';
@@ -5663,17 +5602,5 @@
     var lp = document.getElementById('loginPassword'); if(lp) lp.value = '';
   };
   </script>
-
-  <!-- Confirm Bottom-Sheet -->
-  <div id="confirmSheet">
-    <div class="sheet-box">
-      <p id="confirmSheetMsg" style="font-weight:700;font-size:.95rem;color:var(--text);margin-bottom:16px;text-align:center;"></p>
-      <div style="display:flex;gap:10px;">
-        <button onclick="_confirmSheetCancel()" class="btn-secondary" style="flex:1;justify-content:center;">إلغاء</button>
-        <button id="confirmSheetOk" onclick="_confirmSheetOk()" style="flex:1;padding:10px;border:none;border-radius:var(--radius-sm);background:var(--red);color:white;font-weight:800;font-size:.88rem;font-family:inherit;cursor:pointer;">تأكيد</button>
-      </div>
-    </div>
-  </div>
-
 </body>
 </html>
