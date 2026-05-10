@@ -5398,11 +5398,67 @@
     // ═══════════════════════════════════════════════════════
     (function() {
       var SYNC_KEYS = ['doctorAppointments', 'closedDays', 'nurseAlert'];
-      var bc;
+      var bc, bcNurse;
       try { bc = new BroadcastChannel('docbook_sync'); } catch(e) {}
+      try { bcNurse = new BroadcastChannel('nurseAlerts'); } catch(e) {}
+
+      // ── عرض تنبيه الدكتور ──
+      var _alertTimer = null;
+      window.showDoctorAlert = function(payload) {
+        var alertMap = {
+          next:   { title: 'أدخل المريض',      sub: 'تنبيه من الدكتور' },
+          enter:  { title: 'استدعاء الممرضة',  sub: 'تنبيه من الدكتور' },
+          custom: null
+        };
+        var title, sub;
+        if (payload.type === 'custom') {
+          try {
+            var cd = JSON.parse(localStorage.getItem('nurseCustomAlert') || 'null');
+            title = (cd && cd.label) ? cd.label : 'تنبيه مخصص';
+            sub   = (cd && cd.desc)  ? cd.desc  : 'تنبيه من الدكتور';
+          } catch(e) { title = 'تنبيه مخصص'; sub = 'تنبيه من الدكتور'; }
+        } else {
+          var m = alertMap[payload.type] || alertMap.next;
+          title = m.title; sub = m.sub;
+        }
+        var banner = document.getElementById('doctorAlertBanner');
+        document.getElementById('alertBannerTitle').textContent = title;
+        document.getElementById('alertBannerSub').textContent   = sub;
+        if (banner) banner.classList.add('show');
+        clearTimeout(_alertTimer);
+        _alertTimer = setTimeout(function() { window.closeDoctorAlert(); }, 12000);
+        // صوت تنبيه
+        try {
+          var ctx = new (window.AudioContext || window.webkitAudioContext)();
+          [0, 0.18, 0.36].forEach(function(t) {
+            var o = ctx.createOscillator(), g = ctx.createGain();
+            o.connect(g); g.connect(ctx.destination);
+            o.type = 'sine'; o.frequency.value = 880;
+            g.gain.setValueAtTime(0.3, ctx.currentTime + t);
+            g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.22);
+            o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.22);
+          });
+        } catch(e) {}
+      };
+
+      window.closeDoctorAlert = function() {
+        var banner = document.getElementById('doctorAlertBanner');
+        if (banner) banner.classList.remove('show');
+        clearTimeout(_alertTimer);
+      };
 
       function handleChange(key) {
         if (!key) return;
+        if (key === 'nurseAlert') {
+          try {
+            var raw = localStorage.getItem('nurseAlert');
+            if (!raw) return;
+            var payload = JSON.parse(raw);
+            if (!payload || !payload.type) return;
+            window.showDoctorAlert(payload);
+          } catch(e) {}
+          return;
+        }
         if (key === 'doctorAppointments') {
           try {
             var raw = localStorage.getItem('doctorAppointments');
@@ -5434,9 +5490,14 @@
         if (SYNC_KEYS.includes(e.key)) handleChange(e.key);
       });
 
-      // BroadcastChannel (تبويبات نفس الصفحة)
+      // BroadcastChannel docbook_sync
       if (bc) bc.onmessage = function(e) {
         if (e.data && e.data.key) handleChange(e.data.key);
+      };
+
+      // BroadcastChannel nurseAlerts (الدكتور يُرسل عبر هذا)
+      if (bcNurse) bcNurse.onmessage = function(e) {
+        if (e.data && e.data.type) window.showDoctorAlert(e.data);
       };
 
       // polling خفيف كل 4 ثوان fallback
