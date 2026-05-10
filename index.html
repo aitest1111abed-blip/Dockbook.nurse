@@ -311,6 +311,28 @@
     /* ============================================================
        TOAST
        ============================================================ */
+
+    /* ── Confirm Bottom-Sheet ── */
+    #confirmSheet {
+      position: fixed; inset: 0; z-index: 9999;
+      display: flex; align-items: flex-end; justify-content: center;
+      background: rgba(19,78,74,0.35);
+      opacity: 0; pointer-events: none;
+      transition: opacity .2s;
+    }
+    #confirmSheet.show { opacity: 1; pointer-events: all; }
+    #confirmSheet .sheet-box {
+      background: var(--surface);
+      border-radius: 20px 20px 0 0;
+      border: 1.5px solid var(--border);
+      border-bottom: none;
+      box-shadow: 0 -8px 32px rgba(0,0,0,.12);
+      width: 100%; max-width: 480px;
+      padding: 24px 20px 28px;
+      transform: translateY(20px);
+      transition: transform .25s cubic-bezier(.34,1.56,.64,1);
+    }
+    #confirmSheet.show .sheet-box { transform: translateY(0); }
     .toast {
       position: fixed;
       bottom: 24px;
@@ -3226,7 +3248,7 @@
       showToast('تم التحديث','success');
     }
     function deletePatient(id) {
-      if(confirm('حذف المريض؟')) {
+      appConfirm('هل تريد حذف بيانات هذا المريض نهائياً؟', 'حذف').then(ok => { if(!ok) return; {
         const patients = lsGet(PATIENTS_STORAGE_KEY, {});
         delete patients[id];
         lsSet(PATIENTS_STORAGE_KEY, patients);
@@ -3652,9 +3674,9 @@
       }
     }
 
-    function acceptAppointment(id) { if(confirm('قبول الموعد؟')) updateAppointmentStatus(id,'Accepted'); }
+    function acceptAppointment(id) { appConfirm('قبول هذا الموعد؟', 'قبول').then(ok => { if(ok) updateAppointmentStatus(id,'Accepted'); }); }
     function rejectAppointment(id)  { openRejectModal(id); }
-    function cancelAppointment(id)  { if(confirm('إلغاء الموعد؟')) updateAppointmentStatus(id,'Cancelled'); }
+    function cancelAppointment(id)  { appConfirm('إلغاء هذا الموعد؟', 'إلغاء الموعد').then(ok => { if(ok) updateAppointmentStatus(id,'Cancelled'); }); }
 
     // ============================================================
     //   REJECT MODAL — روزنامة اختيار مواعيد التعويض
@@ -5593,7 +5615,7 @@
     })();
 
   window.docbookSignOut = function() {
-    if (!confirm('تأكيد تسجيل الخروج؟')) return;
+    appConfirm('هل تريد تسجيل الخروج؟', 'تسجيل الخروج').then(ok => { if (!ok) return;
     localStorage.removeItem('docbookNurseSession');
     var ov = document.getElementById('loginOverlay');
     ov.style.display = 'flex'; ov.style.opacity = '0';
@@ -5601,6 +5623,37 @@
     var lu = document.getElementById('loginUser'); if(lu) lu.value = '';
     var lp = document.getElementById('loginPassword'); if(lp) lp.value = '';
   };
+
+    // ── Confirm Bottom-Sheet ──
+    let _confirmResolve = null;
+    function appConfirm(msg, dangerLabel) {
+      return new Promise(resolve => {
+        _confirmResolve = resolve;
+        document.getElementById('confirmSheetMsg').textContent = msg;
+        document.getElementById('confirmSheetOk').textContent  = dangerLabel || 'تأكيد';
+        document.getElementById('confirmSheet').classList.add('show');
+      });
+    }
+    window._confirmSheetOk = function() {
+      document.getElementById('confirmSheet').classList.remove('show');
+      if (_confirmResolve) { _confirmResolve(true);  _confirmResolve = null; }
+    };
+    window._confirmSheetCancel = function() {
+      document.getElementById('confirmSheet').classList.remove('show');
+      if (_confirmResolve) { _confirmResolve(false); _confirmResolve = null; }
+    };
   </script>
+
+  <!-- Confirm Bottom-Sheet -->
+  <div id="confirmSheet">
+    <div class="sheet-box">
+      <p id="confirmSheetMsg" style="font-weight:700;font-size:.95rem;color:var(--text);margin-bottom:18px;text-align:center;line-height:1.5;"></p>
+      <div style="display:flex;gap:10px;">
+        <button onclick="_confirmSheetCancel()" style="flex:1;padding:11px;border:1.5px solid var(--border);border-radius:12px;background:var(--bg);color:var(--text-muted);font-weight:700;font-size:.88rem;font-family:inherit;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='var(--bg)'">إلغاء</button>
+        <button id="confirmSheetOk" onclick="_confirmSheetOk()" style="flex:1;padding:11px;border:none;border-radius:12px;background:var(--red);color:white;font-weight:800;font-size:.88rem;font-family:inherit;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#b91c1c'" onmouseout="this.style.background='var(--red)'">تأكيد</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
