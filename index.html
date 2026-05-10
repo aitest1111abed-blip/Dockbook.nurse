@@ -5401,6 +5401,8 @@
       // ── عرض تنبيه الدكتور ──
       var _alertTimer = null;
       var _alertSoundTimer = null;
+      var _lastAlertTs = 0;
+      var _dismissedTs = 0;
 
       function playAlertSound() {
         try {
@@ -5418,27 +5420,33 @@
 
       window.showDoctorAlert = function(payload) {
         var alertMap = {
-          next:   { title: 'أدخل المريض',      sub: 'تنبيه من الدكتور' },
-          enter:  { title: 'استدعاء الممرضة',  sub: 'تنبيه من الدكتور' },
+          next:   { title: 'أدخل المريض',      sub: 'تنبيه من الدكتور', cls: 'type-next'   },
+          enter:  { title: 'استدعاء الممرضة',  sub: 'تنبيه من الدكتور', cls: 'type-enter'  },
           custom: null
         };
-        var title, sub;
+        var title, sub, cls;
         if (payload.type === 'custom') {
           try {
             var cd = JSON.parse(localStorage.getItem('nurseCustomAlert') || 'null');
             title = (cd && cd.label) ? cd.label : 'تنبيه مخصص';
             sub   = (cd && cd.desc)  ? cd.desc  : 'تنبيه من الدكتور';
           } catch(e) { title = 'تنبيه مخصص'; sub = 'تنبيه من الدكتور'; }
+          cls = 'type-custom';
         } else {
           var m = alertMap[payload.type] || alertMap.next;
-          title = m.title; sub = m.sub;
+          title = m.title; sub = m.sub; cls = m.cls;
         }
         var banner = document.getElementById('doctorAlertBanner');
+        var inner  = document.getElementById('alertBannerInner');
         document.getElementById('alertBannerTitle').textContent = title;
         document.getElementById('alertBannerSub').textContent   = sub;
+        if (inner)  { inner.className = 'alert-banner-inner ' + cls; }
         if (banner) banner.classList.add('show');
 
-        // صوت فوري + تكرار كل 5 ثوان طوال مدة الإشعار
+        // mark timestamp so polling doesn't re-trigger after dismiss
+        _lastAlertTs = payload.ts || Date.now();
+
+        // صوت فوري + تكرار كل 5 ثوان
         playAlertSound();
         clearInterval(_alertSoundTimer);
         _alertSoundTimer = setInterval(playAlertSound, 5000);
@@ -5453,6 +5461,8 @@
         if (banner) banner.classList.remove('show');
         clearTimeout(_alertTimer);
         clearInterval(_alertSoundTimer);
+        // mark as dismissed so polling skips it
+        _dismissedTs = _lastAlertTs;
       };
 
       function handleChange(key) {
@@ -5463,6 +5473,11 @@
             if (!raw) return;
             var payload = JSON.parse(raw);
             if (!payload || !payload.type) return;
+            var ts = payload.ts || 0;
+            // skip if already dismissed or already showing this exact alert
+            if (ts === _dismissedTs || ts === _lastAlertTs) return;
+            // skip if older than 60 seconds (stale from previous session)
+            if (Date.now() - ts > 60000) return;
             window.showDoctorAlert(payload);
           } catch(e) {}
           return;
@@ -5505,7 +5520,10 @@
 
       // BroadcastChannel nurseAlerts (الدكتور يُرسل عبر هذا)
       if (bcNurse) bcNurse.onmessage = function(e) {
-        if (e.data && e.data.type) window.showDoctorAlert(e.data);
+        if (e.data && e.data.type) {
+          var ts = e.data.ts || 0;
+          if (ts !== _dismissedTs) window.showDoctorAlert(e.data);
+        }
       };
 
       // polling خفيف كل 4 ثوان fallback
