@@ -1083,16 +1083,41 @@
       box-shadow: 0 3px 10px rgba(245,158,11,.45);
       color: white;
       position: relative;
+      animation: reminderPulse 2s ease-in-out infinite;
       cursor: pointer;
     }
     .agenda-action-btn.reminder:hover {
       transform: scale(1.12) translateY(-2px);
       box-shadow: 0 6px 18px rgba(245,158,11,.6);
+      animation: none;
     }
     .agenda-action-btn.reminder.sent {
       background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
       box-shadow: 0 3px 10px rgba(22,163,74,.4);
       animation: none;
+    }
+    @keyframes reminderPulse {
+      0%, 100% { box-shadow: 0 3px 10px rgba(245,158,11,.45); transform: scale(1); }
+      50%       { box-shadow: 0 3px 18px rgba(245,158,11,.7); transform: scale(1.06); }
+    }
+    /* بطاقة الأجندة عندما الموعد خلال 6 ساعات */
+    .agenda-card.reminder-due {
+      border-color: #fbbf24 !important;
+      border-width: 2px !important;
+      background: linear-gradient(135deg, #fffbeb 0%, #ffffff 60%) !important;
+    }
+    .reminder-due-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: .68rem;
+      font-weight: 700;
+      color: #92400e;
+      background: #fef3c7;
+      border: 1px solid #fbbf24;
+      border-radius: 20px;
+      padding: 2px 8px;
+      margin-top: 5px;
     }
 
     /* ============================================================
@@ -4244,17 +4269,17 @@
         </div>`;
       document.getElementById('dayDetailsModal').classList.remove('hidden');
     }
-    // ── هل الموعد خلال 3 ساعات القادمة؟ ──
+    // ── هل الموعد خلال 6 ساعات القادمة؟ ──
     function isWithin6Hours(record) {
       const dateStr = normalizeDate(record.Date);
       if (dateStr !== todayStr) return false;
       const now = new Date();
       const nowMins = now.getHours() * 60 + now.getMinutes();
-      // صباحي: افتراض 9:00 ص → نُظهر الزر من 6:00 ص (360 دقيقة = 9*60 - 3*60)
-      // مسائي: افتراض 5:00 م → نُظهر الزر من 2:00 م (840 دقيقة = 17*60 - 3*60)
-      if (record.Slot === 'Morning')  return nowMins >= 360 && nowMins < 12 * 60;
-      if (record.Slot === 'Evening')  return nowMins >= 840 && nowMins < 21 * 60;
-      return nowMins >= 360;
+      // صباحي: افتراض 9:00 ص → نُظهر الزر من 3:00 ص (360 دقيقة = 9*60 - 6*60)
+      // مسائي: افتراض 5:00 م → نُظهر الزر من 11:00 ص (660 دقيقة = 17*60 - 6*60)
+      if (record.Slot === 'Morning')  return nowMins >= 180 && nowMins < 12 * 60;
+      if (record.Slot === 'Evening')  return nowMins >= 660 && nowMins < 21 * 60;
+      return nowMins >= 180; // غير معلوم: اعرضه طوال اليوم بعد 3 ص
     }
 
     // ── قراءة حالة التذكير من localStorage ──
@@ -4267,7 +4292,7 @@
       const slot   = record.Slot === 'Morning' ? 'الصباحية' : record.Slot === 'Evening' ? 'المسائية' : '';
       const date   = formatDateAr(record.Date);
       const visit  = record.VisitType || 'الزيارة';
-      return `السلام عليكم ${record.PatientName}،\n\nهذا تذكير بموعدكم لدينا اليوم ${date} في الفترة ${slot}.\nنوع الزيارة: ${visit}.\n\nنرجو الحضور في الوقت المحدد.\nشكراً لكم 🌿`;
+      return `السلام عليكم ${record.PatientName},\n\nهذا تذكير بموعدكم لدينا اليوم ${date} في الفترة ${slot}.\nنوع الزيارة: ${visit}.\n\nنرجو الحضور في الوقت المحدد.\nشكراً لكم 🌿`;
     }
 
     // ── متغير عالمي لتتبع الزر الحالي والسجل ──
@@ -4291,7 +4316,6 @@
       const onVisible = function() {
         if (document.visibilityState === 'visible') {
           document.removeEventListener('visibilitychange', onVisible);
-          // تأخير بسيط حتى يرتاح المستخدم
           setTimeout(function() {
             openReminderConfirmModal(record);
           }, 600);
@@ -4320,14 +4344,10 @@
     window.confirmReminderSent = function() {
       if (_reminderActiveId) {
         markReminderSent(_reminderActiveId);
-        // Remove bell button and restore card to normal style via DOM
-        const btn = document.querySelector(`[data-reminder-id="${_reminderActiveId}"]`);
-        if (btn) btn.remove();
-        const card = document.querySelector(`[data-card-id="${_reminderActiveId}"]`);
-        if (card) {
-          card.classList.remove('reminder-due');
-          card.style.borderColor = '';
-          card.style.background = '';
+        if (_reminderActiveBtn) {
+          _reminderActiveBtn.classList.add('sent');
+          _reminderActiveBtn.title = 'تم إرسال التذكير ✓';
+          _reminderActiveBtn.innerHTML = ICON.check;
         }
         showToast('تم تسجيل إرسال التذكير ✓', 'success');
       }
@@ -4340,22 +4360,25 @@
     };
 
     function agendaCardHTML(record) {
-      const within3h    = isWithin6Hours(record);
+      const phone     = normalizePhone(record.Phone);
+      const within6h  = isWithin6Hours(record);
       const sentAlready = isReminderSent(record.id);
-      const showBell    = within3h && !sentAlready;
-      const bellSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`;
-      const reminderBtn = showBell
-        ? `<button class="agenda-action-btn reminder" data-reminder-id="${record.id}"
-             title="إرسال تذكير بالموعد"
+      const reminderBtn = within6h
+        ? `<button class="agenda-action-btn reminder ${sentAlready ? 'sent' : ''}"
+             title="${sentAlready ? 'تم إرسال التذكير ✓' : 'إرسال تذكير بالموعد'}"
              onclick='sendWhatsAppReminder(${JSON.stringify(record).replace(/'/g,"\\'")},this)'>
-             ${bellSVG}
+             ${sentAlready ? ICON.check : ICON.bell}
            </button>`
         : '';
-      return `<div class="agenda-card" data-card-id="${record.id}">
+      const dueBadge = within6h && !sentAlready
+        ? `<span class="reminder-due-badge"><i class="fas fa-bell" style="font-size:.6rem;"></i> موعد قريب</span>`
+        : '';
+      return `<div class="agenda-card ${within6h ? 'reminder-due' : ''}">
         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
           <div>
             <p class="agenda-patient-name">${escapeHtml(record.PatientName)}</p>
             <p class="agenda-patient-phone">${escapeHtml(record.Phone)}</p>
+            ${dueBadge}
           </div>
           <div style="display:flex; gap:6px; align-items:center;">
             ${reminderBtn}
