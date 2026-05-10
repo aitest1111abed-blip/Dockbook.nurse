@@ -1091,11 +1091,6 @@
       box-shadow: 0 6px 18px rgba(245,158,11,.6);
       animation: none;
     }
-    .agenda-action-btn.reminder.sent {
-      background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
-      box-shadow: 0 3px 10px rgba(22,163,74,.4);
-      animation: none;
-    }
     @keyframes reminderPulse {
       0%, 100% { box-shadow: 0 3px 10px rgba(245,158,11,.45); transform: scale(1); }
       50%       { box-shadow: 0 3px 18px rgba(245,158,11,.7); transform: scale(1.06); }
@@ -4391,11 +4386,11 @@
       const phone     = normalizePhone(record.Phone);
       const within6h  = isWithin6Hours(record);
       const sentAlready = isReminderSent(record.id);
-      const reminderBtn = within6h
-        ? `<button class="agenda-action-btn reminder ${sentAlready ? 'sent' : ''}"
-             title="${sentAlready ? 'تم إرسال التذكير ✓' : 'إرسال تذكير بالموعد'}"
+      const reminderBtn = (within6h && !sentAlready)
+        ? `<button class="agenda-action-btn reminder"
+             title="إرسال تذكير بالموعد"
              onclick='sendWhatsAppReminder(${JSON.stringify(record).replace(/'/g,"\\'")},this)'>
-             ${sentAlready ? ICON.check : ICON.bell}
+             ${ICON.bell}
            </button>`
         : '';
       const dueBadge = within6h && !sentAlready
