@@ -313,10 +313,17 @@
        ============================================================ */
     .toast {
       position: fixed;
-      top: 76px;
-      left: 50%;
-      transform: translateX(-50%);
+      bottom: 24px;
+      right: 24px;
+      left: auto;
+      transform: none;
       z-index: 9999;
+      transition: opacity .25s ease, transform .25s ease;
+    }
+    .toast.hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px);
     }
     #toastContent {
       display: flex;
@@ -568,7 +575,7 @@
         max-height: 88dvh;
         height: auto;
         width: 100%;
-        max-width: 820px;
+        max-width: 640px;
         animation: overlayFadeIn .2s ease;
       }
     }
@@ -584,35 +591,26 @@
     .rmodal-body {
       flex: 1;
       overflow-y: auto;
-      padding: 16px 20px;
+      padding: 14px 16px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 12px;
     }
-    /* On desktop split into two columns */
     @media (min-width: 768px) {
       .rmodal-body {
-        flex-direction: row;
-        align-items: flex-start;
-        gap: 24px;
-        padding: 24px 32px;
-        max-width: 1100px;
-        margin: 0 auto;
-        width: 100%;
+        padding: 16px 24px;
+        gap: 14px;
       }
-      .rmodal-col-left  { flex: 1.2; min-width: 0; }
-      .rmodal-col-right { flex: 1; min-width: 0; }
     }
     .rmodal-footer {
-      padding: 14px 20px;
+      padding: 10px 16px;
       border-top: 1.5px solid var(--border);
       display: flex;
-      gap: 10px;
+      gap: 8px;
       flex-shrink: 0;
-      flex-wrap: wrap;
     }
     @media (min-width: 768px) {
-      .rmodal-footer { padding: 16px 32px; }
+      .rmodal-footer { padding: 12px 24px; }
     }
 
     /* ── Reject Calendar — نفس تصميم compact-calendar ── */
@@ -630,7 +628,7 @@
     }
 
     .rcal-day {
-      padding: 8px 2px;
+      padding: 5px 2px;
       border-radius: 9px;
       cursor: pointer;
       transition: all .15s;
@@ -638,12 +636,12 @@
       background: transparent;
       color: var(--text);
       position: relative;
-      font-size: 0.85rem;
+      font-size: 0.78rem;
       font-weight: 600;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 3px;
+      gap: 2px;
       min-height: unset;
     }
     .rcal-day:hover:not(.rcal-other):not(.rcal-past) {
@@ -656,7 +654,7 @@
     .rcal-closed { background: var(--red-light) !important; border-color: #fca5a5 !important; color: var(--red) !important; }
     .rcal-today .rcal-num { color: var(--primary); font-weight: 800; }
     .rcal-num {
-      font-size: 0.85rem;
+      font-size: 0.75rem;
       font-weight: 600;
       color: var(--text);
       line-height: 1;
@@ -667,11 +665,11 @@
     .rcal-pill {
       background: var(--surface);
       border: 1.5px solid var(--border-strong);
-      border-radius: 6px;
-      font-size: .6rem;
+      border-radius: 5px;
+      font-size: .55rem;
       font-weight: 700;
       font-family: inherit;
-      padding: 2px 5px;
+      padding: 1px 4px;
       cursor: pointer;
       color: var(--text-muted);
       transition: all .15s;
@@ -1130,112 +1128,32 @@
       inset: 0;
       z-index: 9500;
       display: flex;
-      align-items: center;
+      align-items: flex-end;
       justify-content: center;
-      padding: 20px;
-      background: rgba(19,78,74,0.4);
-            -webkit-    }
+      padding: 16px;
+      background: rgba(19,78,74,0.35);
+      pointer-events: none;
+    }
     #reminderConfirmModal.hidden { display: none !important; }
     .reminder-modal-box {
+      pointer-events: all;
       background: var(--surface);
       border: 1.5px solid var(--border);
-      border-radius: var(--radius-xl);
+      border-radius: var(--radius-lg);
       box-shadow: var(--shadow-lg);
+      padding: 18px 20px;
       width: 100%;
-      max-width: 360px;
-      padding: 28px 24px 20px;
-      text-align: center;
+      max-width: 420px;
       animation: panelSlideUp .28s cubic-bezier(.34,1.56,.64,1);
     }
-    .reminder-modal-icon {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      background: var(--primary-light);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.6rem;
-      margin-bottom: 14px;
-      border: 2px solid var(--border-strong);
+    @media (min-width: 768px) {
+      #reminderConfirmModal {
+        align-items: center;
+      }
+      .reminder-modal-box {
+        max-width: 420px;
+      }
     }
-    .reminder-modal-title {
-      font-size: 1.05rem;
-      font-weight: 800;
-      color: var(--text);
-      margin-bottom: 6px;
-    }
-    .reminder-modal-sub {
-      font-size: .82rem;
-      color: var(--text-muted);
-      margin-bottom: 20px;
-      line-height: 1.5;
-    }
-    .reminder-modal-btns {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .reminder-btn-yes {
-      background: var(--green);
-      color: white;
-      border: none;
-      border-radius: var(--radius-sm);
-      padding: 13px 18px;
-      font-weight: 800;
-      font-size: .95rem;
-      font-family: inherit;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: background .15s, transform .1s;
-    }
-    .reminder-btn-yes:hover { background: #15803d; }
-    .reminder-btn-yes:active { transform: scale(.98); }
-    .reminder-btn-row {
-      display: flex;
-      gap: 10px;
-    }
-    .reminder-btn-no {
-      flex: 1;
-      background: #e2e8f0;
-      color: #475569;
-      border: none;
-      border-radius: var(--radius-sm);
-      padding: 12px 14px;
-      font-weight: 700;
-      font-size: .9rem;
-      font-family: inherit;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 7px;
-      transition: background .15s;
-    }
-    .reminder-btn-no:hover { background: #cbd5e1; }
-    .reminder-btn-sms {
-      flex: 1;
-      background: var(--blue);
-      color: white;
-      border: none;
-      border-radius: var(--radius-sm);
-      padding: 12px 14px;
-      font-weight: 700;
-      font-size: .9rem;
-      font-family: inherit;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 7px;
-      transition: background .15s, transform .1s;
-      text-decoration: none;
-    }
-    .reminder-btn-sms:hover { background: #1d4ed8; }
-    .reminder-btn-sms:active { transform: scale(.98); }
 
     /* Unified appointment card action buttons — always equal size */
     .appt-card-btn {
@@ -1809,6 +1727,57 @@
       from { opacity: 0; transform: translateY(24px) scale(.97); }
       to   { opacity: 1; transform: translateY(0) scale(1); }
     }
+
+    /* ── Desktop: full-width 3-column layout ── */
+    @media (min-width: 768px) {
+      #manualFormPanel {
+        max-width: 1100px;
+        max-height: 92vh;
+        overflow-y: auto;
+        padding: 28px 32px;
+      }
+      /* Hide step indicator on desktop — steps shown side by side */
+      #manualFormPanel .form-step-indicator { display: none; }
+      /* Show ALL steps simultaneously */
+      #manualFormPanel .form-step { display: block !important; }
+      /* 3-column grid */
+      #oDesktopGrid {
+        display: grid;
+        grid-template-columns: 1fr 1.5fr 1fr;
+        gap: 20px;
+        align-items: start;
+      }
+      /* Hide prev/next navigation buttons on desktop */
+      #oNextToStep2, #oBackToStep1, #oNextToStep3, #oBackToStep2 { display: none !important; }
+      /* Keep submit button visible */
+      #oSubmitManualAppointment { display: flex !important; width: 100%; justify-content: center; }
+      /* Step column card style */
+      .o-step-col {
+        background: var(--bg);
+        border: 1.5px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+      .o-step-col-title {
+        display: flex !important;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1.5px solid var(--border);
+      }
+      /* form-summary inside step 2 hidden on desktop — redundant */
+      #overlayStep2 .form-summary { display: none; }
+    }
+    /* Mobile: hide desktop grid wrapper decoration */
+    @media (max-width: 767px) {
+      #oDesktopGrid { display: contents; }
+      .o-step-col { display: contents; }
+      .o-step-col-title { display: none; }
+    }
     #manualFormOverlayCloseBtn {
       position: absolute;
       top: 16px;
@@ -1833,6 +1802,18 @@
       color: var(--red);
     }
 
+
+    /* Notes overlay — mobile: full screen */
+    @media (max-width: 767px) {
+      #notesOverlay { align-items: flex-end; padding: 0; }
+      #notesPanel {
+        max-width: 100% !important;
+        width: 100% !important;
+        height: 96dvh !important;
+        max-height: 96dvh !important;
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
+      }
+    }
 
     /* ============================================================
        بانر تنبيه الدكتور
@@ -2155,13 +2136,13 @@
                 <button id="nextMonthBtn" class="compact-nav-btn"><i class="fas fa-chevron-left"></i></button>
               </div>
               <div class="compact-calendar-grid" style="margin-bottom:8px;">
-                <div class="compact-calendar-day-name">السبت</div>
                 <div class="compact-calendar-day-name">الجمعة</div>
-                <div class="compact-calendar-day-name">الخميس</div>
-                <div class="compact-calendar-day-name">الأربعاء</div>
-                <div class="compact-calendar-day-name">الثلاثاء</div>
-                <div class="compact-calendar-day-name">الإثنين</div>
+                <div class="compact-calendar-day-name">السبت</div>
                 <div class="compact-calendar-day-name">الأحد</div>
+                <div class="compact-calendar-day-name">الإثنين</div>
+                <div class="compact-calendar-day-name">الثلاثاء</div>
+                <div class="compact-calendar-day-name">الأربعاء</div>
+                <div class="compact-calendar-day-name">الخميس</div>
               </div>
               <div id="calendarGrid" class="compact-calendar-grid"></div>
             </div>
@@ -2254,25 +2235,32 @@
   <!-- ========== REMINDER CONFIRM MODAL ========== -->
   <div id="reminderConfirmModal" class="hidden">
     <div class="reminder-modal-box">
-      <div class="reminder-modal-icon">💬</div>
-      <div class="reminder-modal-title">هل تمت الرسالة؟</div>
-      <div class="reminder-modal-sub">
-        هل أرسلتِ تذكير الموعد عبر واتساب لـ<br>
-        <strong id="rcmPatientName" style="color:var(--primary);"></strong>
-        <span style="display:block; font-size:.75rem; margin-top:2px; opacity:.7;" id="rcmPhone"></span>
-      </div>
-      <div class="reminder-modal-btns">
-        <button class="reminder-btn-yes" onclick="confirmReminderSent()">
-          <i class="fas fa-check-circle"></i> نعم، تمت الرسالة
-        </button>
-        <div class="reminder-btn-row">
-          <button class="reminder-btn-no" onclick="dismissReminderSent()">
-            <i class="fas fa-times"></i> لا
-          </button>
-          <a class="reminder-btn-sms" id="rcmSmsBtn" href="#" onclick="closeReminderConfirmModal()">
-            <i class="fas fa-sms"></i> SMS
-          </a>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+        <div style="width:40px;height:40px;border-radius:11px;background:#dcfce7;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <i class="fab fa-whatsapp" style="color:#16a34a;font-size:1.2rem;"></i>
         </div>
+        <div style="flex:1;min-width:0;">
+          <p style="font-weight:800;font-size:.92rem;color:var(--text);line-height:1.2;">هل تمت الرسالة؟</p>
+          <p style="font-size:.72rem;color:var(--text-muted);margin-top:2px;">
+            هل أرسلتِ تذكير الموعد عبر واتساب لـ
+            <strong id="rcmPatientName" style="color:var(--primary);"></strong>
+          </p>
+        </div>
+        <button onclick="closeReminderConfirmModal()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1rem;padding:4px;flex-shrink:0;"><i class="fas fa-times"></i></button>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button onclick="confirmReminderSent()" style="
+          flex:1;background:var(--green-light);color:var(--green);border:1.5px solid #86efac;
+          border-radius:var(--radius-sm);padding:10px;font-weight:800;font-size:.88rem;
+          font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+          <i class="fas fa-check"></i> نعم، تمت الرسالة
+        </button>
+        <a id="rcmSmsBtn" href="#" onclick="closeReminderConfirmModal()" style="
+          flex:1;background:var(--blue);color:white;border:none;
+          border-radius:var(--radius-sm);padding:10px;font-weight:800;font-size:.88rem;
+          font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;">
+          <i class="fas fa-sms"></i> لا SMS
+        </a>
       </div>
     </div>
   </div>
@@ -2304,53 +2292,49 @@
         <div class="rmodal-col-left">
 
           <!-- Patient Info Banner -->
-          <div style="background:var(--red-light); border:1.5px solid #fca5a5; border-radius:var(--radius); padding:14px; margin-bottom:16px;">
-            <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-              <div style="width:34px;height:34px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <i class="fas fa-user-times" style="color:white;font-size:.8rem;"></i>
+          <div style="background:var(--red-light); border:1.5px solid #fca5a5; border-radius:var(--radius); padding:10px 12px; margin-bottom:10px;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+              <div style="width:30px;height:30px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="fas fa-user-times" style="color:white;font-size:.75rem;"></i>
               </div>
               <div>
-                <p id="rejectPatientName" style="font-weight:700; font-size:.95rem; color:var(--text);"></p>
-                <p id="rejectPatientDate" style="font-size:.74rem; color:var(--red); margin-top:2px; font-weight:600;"></p>
+                <p id="rejectPatientName" style="font-weight:700; font-size:.9rem; color:var(--text);"></p>
+                <p id="rejectPatientDate" style="font-size:.72rem; color:var(--red); margin-top:1px; font-weight:600;"></p>
               </div>
             </div>
-            <div style="background:white; border-radius:var(--radius-sm); padding:10px 12px; border:1px solid #fca5a5;">
-              <p style="font-size:.78rem; color:#7f1d1d; line-height:1.65;">
-                <i class="fas fa-info-circle" style="margin-left:6px; color:var(--red);"></i>
+            <div style="background:white; border-radius:var(--radius-sm); padding:8px 10px; border:1px solid #fca5a5;">
+              <p style="font-size:.76rem; color:#7f1d1d; line-height:1.55;">
+                <i class="fas fa-info-circle" style="margin-left:5px; color:var(--red);"></i>
                 سيتم إرسال رسالة للمريض برفض موعده. يمكنك اختيار مواعيد بديلة من الروزنامة.
               </p>
             </div>
           </div>
 
           <!-- Calendar Title -->
-          <p style="font-weight:700; font-size:.88rem; color:var(--text); margin-bottom:10px;">
+          <p style="font-weight:700; font-size:.84rem; color:var(--text); margin-bottom:8px;">
             <i class="fas fa-calendar-alt" style="color:var(--primary); margin-left:6px;"></i>
             اختاري مواعيد التعويض
           </p>
 
           <!-- Calendar Wrapper -->
-          <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:16px;box-shadow:var(--shadow-sm);">
+          <div class="compact-calendar-container" style="padding:12px !important;">
 
           <!-- Calendar Nav -->
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
-            <button onclick="prevRejectMonth()" class="compact-nav-btn" style="width:34px;height:34px;border-radius:9px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);cursor:pointer;font-size:.85rem;display:flex;align-items:center;justify-content:center;transition:all .15s;" onmouseover="this.style.borderColor='var(--primary)';this.style.color='var(--primary)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">
-              <i class="fas fa-chevron-right"></i>
-            </button>
-            <span id="rejectCalMonth" style="font-weight:700; font-size:.92rem; color:var(--text);"></span>
-            <button onclick="nextRejectMonth()" class="compact-nav-btn" style="width:34px;height:34px;border-radius:9px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);cursor:pointer;font-size:.85rem;display:flex;align-items:center;justify-content:center;transition:all .15s;" onmouseover="this.style.borderColor='var(--primary)';this.style.color='var(--primary)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">
-              <i class="fas fa-chevron-left"></i>
-            </button>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+            <button onclick="prevRejectMonth()" class="compact-nav-btn" type="button"><i class="fas fa-chevron-right"></i></button>
+            <span id="rejectCalMonth" style="font-weight:700; font-size:.88rem; color:var(--text);"></span>
+            <button onclick="nextRejectMonth()" class="compact-nav-btn" type="button"><i class="fas fa-chevron-left"></i></button>
           </div>
 
           <!-- Day Names -->
           <div class="rcal-grid" style="margin-bottom:3px;">
-            <div class="rcal-day-name">السبت</div>
             <div class="rcal-day-name">الجمعة</div>
-            <div class="rcal-day-name">الخميس</div>
-            <div class="rcal-day-name">الأربعاء</div>
-            <div class="rcal-day-name">الثلاثاء</div>
-            <div class="rcal-day-name">الإثنين</div>
+            <div class="rcal-day-name">السبت</div>
             <div class="rcal-day-name">الأحد</div>
+            <div class="rcal-day-name">الإثنين</div>
+            <div class="rcal-day-name">الثلاثاء</div>
+            <div class="rcal-day-name">الأربعاء</div>
+            <div class="rcal-day-name">الخميس</div>
           </div>
 
           <!-- Calendar Grid -->
@@ -2373,7 +2357,7 @@
 
         <!-- COL RIGHT: selected slots -->
         <div class="rmodal-col-right">
-          <p style="font-weight:700; font-size:.88rem; color:var(--text); margin-bottom:10px;">
+          <p style="font-weight:700; font-size:.84rem; color:var(--text); margin-bottom:8px;">
             <i class="fas fa-check-double" style="color:var(--primary); margin-left:6px;"></i>
             المواعيد المختارة للتعويض
           </p>
@@ -2385,12 +2369,12 @@
       <!-- Footer -->
       <div class="rmodal-footer">
         <button id="rejectSendBtn" onclick="confirmReject()"
-          style="flex:1; border:none; border-radius:var(--radius-sm); padding:13px 16px; font-weight:700; font-size:.9rem; font-family:inherit; cursor:pointer; color:white; background:var(--red); transition:background .15s; display:flex; align-items:center; justify-content:center; gap:8px; min-width:180px;">
-          <i class="fab fa-whatsapp" style="font-size:1rem;"></i>
+          style="flex:1; border:none; border-radius:var(--radius-sm); padding:10px 14px; font-weight:700; font-size:.84rem; font-family:inherit; cursor:pointer; color:white; background:var(--red); transition:background .15s; display:flex; align-items:center; justify-content:center; gap:6px;">
+          <i class="fab fa-whatsapp"></i>
           رفض بدون مواعيد بديلة
         </button>
         <button onclick="closeRejectModal()"
-          style="background:#e2e8f0; color:#475569; border:none; border-radius:var(--radius-sm); padding:13px 20px; font-weight:700; font-size:.9rem; font-family:inherit; cursor:pointer; display:flex; align-items:center; gap:6px; transition:background .15s;"
+          style="background:#e2e8f0; color:#475569; border:none; border-radius:var(--radius-sm); padding:10px 14px; font-weight:700; font-size:.84rem; font-family:inherit; cursor:pointer; display:flex; align-items:center; gap:5px; transition:background .15s; white-space:nowrap;"
           onmouseover="this.style.background='#cbd5e1'" onmouseout="this.style.background='#e2e8f0'">
           <i class="fas fa-arrow-right"></i> عودة
         </button>
@@ -2799,7 +2783,7 @@
 
   <!-- ========== NOTES OVERLAY ========== -->
   <div id="notesOverlay" style="display:none; position:fixed; inset:0; z-index:400; background:rgba(19,78,74,0.35); backdrop-filter:blur(4px); align-items:center; justify-content:center; padding:20px; animation:overlayFadeIn .2s ease;" onclick="if(event.target===this)closeNotesOverlay()">
-    <div id="notesPanel" style="background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius-xl); box-shadow:var(--shadow-lg); width:100%; max-width:560px; max-height:90vh; overflow-y:auto; padding:0; position:relative; animation:panelSlideUp .25s cubic-bezier(.34,1.56,.64,1); display:flex; flex-direction:column;">
+    <div id="notesPanel" style="background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius-xl); box-shadow:var(--shadow-lg); width:100%; max-width:860px; max-height:92vh; height:92vh; overflow:hidden; position:relative; animation:panelSlideUp .25s cubic-bezier(.34,1.56,.64,1); display:flex; flex-direction:column;">
       <!-- Header -->
       <div style="padding:20px 24px 16px; border-bottom:1.5px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-shrink:0;">
         <div style="display:flex; align-items:center; gap:12px;">
@@ -2835,7 +2819,7 @@
       </div>
 
       <!-- Notes list -->
-      <div id="notesList" style="padding:16px 24px; display:flex; flex-direction:column; gap:10px; flex:1; overflow-y:auto; min-height:160px;">
+      <div id="notesList" style="padding:16px 24px; display:flex; flex-direction:column; gap:10px; flex:1; overflow-y:auto; min-height:0;">
         <div id="notesEmpty" style="text-align:center; padding:32px 0; color:var(--text-muted);">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 10px; display:block; opacity:.35;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           <p style="font-size:.85rem; font-weight:600;">لا توجد ملاحظات بعد</p>
@@ -2896,17 +2880,34 @@
     function normalizePhone(p) { return (p||'').replace(/[^\d+]/g,''); }
     function escapeHtml(text) { const div=document.createElement('div'); div.textContent=text; return div.innerHTML; }
 
-    function showToast(msg, type='info') {
+    function playNotifSound() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = 'sine';
+        o.frequency.setValueAtTime(880, ctx.currentTime);
+        o.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.12);
+        g.gain.setValueAtTime(0.25, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+        o.start(ctx.currentTime);
+        o.stop(ctx.currentTime + 0.35);
+      } catch(e) {}
+    }
+
+    function showToast(msg, type='info', sound=false) {
       const toast=document.getElementById('toast');
       const content=document.getElementById('toastContent');
       const colors = { success: '#16a34a', error: '#dc2626', info: '#0d9488' };
-      const icons  = { success: 'check-circle', error: 'exclamation-circle', info: 'info-circle' };
       content.style.background = colors[type] || colors.info;
       content.style.color = 'white';
       content.className = '';
-      content.innerHTML = `<i class="fas fa-${icons[type]||icons.info}"></i> ${msg}`;
+      content.innerHTML = msg;
       toast.classList.remove('hidden');
-      setTimeout(()=>toast.classList.add('hidden'), 3000);
+      if (sound) playNotifSound();
+      clearTimeout(toast._hideTimer);
+      toast._hideTimer = setTimeout(()=>toast.classList.add('hidden'), 3000);
     }
 
     // ================== localStorage CRUD ==================
@@ -3149,7 +3150,7 @@
             updateCounts(); calculateDensity(); renderCalendar();
             if (selectedDayStr) renderAgendaForDay(selectedDayStr);
             if (currentSection === 'appointments') renderBothAppointmentColumns();
-            showToast('📥 حجز جديد من المريض!', 'success');
+            showToast('📥 حجز جديد من المريض!', 'success', true);
           }
         };
       } catch(e) {}
@@ -3175,7 +3176,7 @@
         lsSet(STORAGE_KEY, records);
         notifyOtherTab(STORAGE_KEY);
         allRecords = records;
-        showToast('تم تحديث الحالة','success');
+        showToast('تم تحديث الحالة','success', true);
         if (status==='Accepted') sendWhatsAppConfirmation(record.Phone,record.PatientName,record.Date,record.Slot,record.VisitType);
         else if (status==='Rejected') sendWhatsAppRejection(record.Phone,record.PatientName,record.Date, record._rejectAltSlots||[]);
         else if (status==='Cancelled') sendWhatsAppCancellation(record.Phone,record.PatientName,record.Date);
@@ -3658,7 +3659,7 @@
       const today2 = new Date(); today2.setHours(0,0,0,0);
       const firstDay = new Date(year, month, 1).getDay();
       const daysInMonth = new Date(year, month+1, 0).getDate();
-      let startOffset = (firstDay + 2) % 7;
+      let startOffset = (firstDay + 3) % 7;
       for (let i = startOffset-1; i >= 0; i--) {
         const el = document.createElement('div');
         el.className = 'rcal-day rcal-other';
@@ -4722,14 +4723,14 @@
       document.getElementById('oManualVisitType').value = '';
       document.getElementById('oManualDateInput').value = '';
       document.getElementById('oManualBirthDate').max = todayStr;
-      document.getElementById('oSlotMorning').classList.add('selected');
-      document.getElementById('oSlotEvening').classList.remove('selected');
+      if (window.oSelectSlot) oSelectSlot('Morning');
       document.getElementById('oClosedDayWarning').classList.add('hidden');
       document.getElementById('oSelectedDayInfo').classList.add('hidden');
       document.getElementById('oSlotSelectorWrapper').classList.add('hidden');
       oCalDate = new Date(); oCalDate.setHours(0,0,0,0);
       oUpdateSummary();
       oGoToStep(1);
+      oRenderCalendar();
       document.getElementById('manualFormOverlay').classList.add('active');
       document.body.style.overflow = 'hidden';
     }
@@ -4798,10 +4799,11 @@
       const maxDate = new Date(today2); maxDate.setMonth(maxDate.getMonth() + 3);
       const firstDay = new Date(year, month, 1).getDay();
       const daysInMonth = new Date(year, month+1, 0).getDate();
-      let startOffset = (firstDay + 2) % 7;
+      // Friday-first: Fri=5→col0, Sat=6→col1, Sun=0→col2, Mon=1→col3, Tue=2→col4, Wed=3→col5, Thu=4→col6
+      let startOffset = (firstDay + 3) % 7;
       for (let i = startOffset-1; i >= 0; i--) {
         const el = document.createElement('div');
-        el.style.cssText = 'border-radius:8px;min-height:52px;';
+        el.className = 'compact-calendar-day other-month';
         grid.appendChild(el);
       }
       for (let d = 1; d <= daysInMonth; d++) {
@@ -4811,55 +4813,31 @@
         const isClosed = isDayClosed(dateStr);
         const isFutureTooFar = dateObj > maxDate;
         const isSelected = oManualData.selectedDate === dateStr;
+        const isToday = dateObj.getTime() === today2.getTime();
         const appts = oGetDayAppointments(dateStr);
         const mCount = appts.morning.length, eCount = appts.evening.length;
-        const isToday = dateObj.getTime() === today2.getTime();
-
-        // density color for dot
         const total = mCount + eCount;
-        let dotColor = '#16a34a';
-        if (total >= 5) dotColor = '#dc2626';
-        else if (total >= 3) dotColor = '#d97706';
-
-        let bg = 'white', border = '1.5px solid var(--border)', opacity = '1', cursor = 'pointer';
-        if (isClosed)       { bg = '#fee2e2'; border = '1.5px solid #fca5a5'; }
-        if (isPast || isFutureTooFar) { opacity = '0.3'; cursor = 'default'; }
-        if (isSelected)     { bg = 'var(--primary)'; border = '1.5px solid var(--primary)'; }
-        if (isToday && !isSelected) border = '2px solid var(--primary)';
 
         const el = document.createElement('div');
-        el.style.cssText = `border-radius:8px; min-height:52px; background:${bg}; border:${border}; opacity:${opacity}; cursor:${cursor}; padding:4px 3px; display:flex; flex-direction:column; align-items:center; gap:2px; position:relative; transition:all .15s;`;
+        el.className = 'compact-calendar-day';
+        if (isToday) el.classList.add('today');
+        if (isSelected) el.classList.add('selected');
+        if (isClosed) el.classList.add('closed-day');
+        if (isPast || isFutureTooFar) { el.classList.add('past-day'); el.style.cursor = 'default'; }
 
-        const numColor = isSelected ? 'white' : (isToday ? 'var(--primary)' : 'var(--text)');
-        let html = `<span style="font-size:.72rem;font-weight:${isToday||isSelected?'800':'600'};color:${numColor};line-height:1;">${d}</span>`;
+        el.textContent = d;
 
-        if (!isClosed && !isPast) {
-          // Morning pill
-          const mBg = isSelected ? 'rgba(255,255,255,.2)' : (mCount >= 4 ? '#fee2e2' : mCount >= 2 ? '#fef3c7' : '#f0fdf4');
-          const mTxt = isSelected ? 'white' : (mCount >= 4 ? '#dc2626' : mCount >= 2 ? '#d97706' : '#16a34a');
-          html += `<div style="background:${mBg};border-radius:4px;padding:1px 4px;width:100%;text-align:center;display:flex;align-items:center;justify-content:center;gap:2px;">
-            <i class="fas fa-sun" style="font-size:.5rem;color:${isSelected?'rgba(255,255,255,.8)':'#d97706'};"></i>
-            <span style="font-size:.6rem;font-weight:700;color:${mTxt};">${mCount}</span>
-          </div>`;
-          const eBg = isSelected ? 'rgba(255,255,255,.2)' : (eCount >= 4 ? '#fee2e2' : eCount >= 2 ? '#ede9fe' : '#f5f3ff');
-          const eTxt = isSelected ? 'white' : (eCount >= 4 ? '#dc2626' : '#6366f1');
-          html += `<div style="background:${eBg};border-radius:4px;padding:1px 4px;width:100%;text-align:center;display:flex;align-items:center;justify-content:center;gap:2px;">
-            <i class="fas fa-moon" style="font-size:.5rem;color:${isSelected?'rgba(255,255,255,.8)':'#6366f1'};"></i>
-            <span style="font-size:.6rem;font-weight:700;color:${eTxt};">${eCount}</span>
-          </div>`;
-        } else if (isClosed) {
-          html += `<span style="font-size:.55rem;color:#dc2626;font-weight:700;">مغلق</span>`;
+        // density dot
+        if (!isPast && !isFutureTooFar && total > 0) {
+          const dot = document.createElement('div');
+          dot.className = 'compact-appointment-dot';
+          if (total <= 2) dot.classList.add('compact-dot-low');
+          else if (total <= 4) dot.classList.add('compact-dot-medium');
+          else dot.classList.add('compact-dot-high');
+          el.appendChild(dot);
         }
 
-        el.innerHTML = html;
-
         if (!isPast && !isClosed && !isFutureTooFar) {
-          el.addEventListener('mouseenter', function() {
-            if (!isSelected) this.style.borderColor = 'var(--primary)';
-          });
-          el.addEventListener('mouseleave', function() {
-            if (!isSelected) this.style.borderColor = isClosed ? '#fca5a5' : 'var(--border)';
-          });
           el.addEventListener('click', function() { oSelectDay(dateStr); });
         }
         grid.appendChild(el);
@@ -4877,32 +4855,56 @@
       const appts = oGetDayAppointments(dateStr);
       const dateObj = parseLocalISODate(dateStr);
       document.getElementById('oSelectedDayLabel').textContent = daysAr[dateObj.getDay()] + ' — ' + formatDateAr(dateStr);
-      // Morning patients
-      const mNames = appts.morning.map(r => '• ' + (r.PatientName||'—')).join('<br>');
+
+      // Helper: render mini appointment cards
+      function renderMiniCards(list, container) {
+        if (!list.length) {
+          container.innerHTML = '<p style="color:var(--text-muted);font-size:.75rem;padding:6px 8px;text-align:center;background:var(--bg);border-radius:var(--radius-sm);border:1.5px dashed var(--border);">لا مواعيد لهذا اليوم</p>';
+          return;
+        }
+        container.innerHTML = list.map(r => {
+          const visitType = r.VisitType || 'غير محدد';
+          const name = r.PatientName || '—';
+          const phone = r.Phone || '';
+          return `<div style="display:flex;align-items:center;gap:8px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--primary-light);border:1.5px solid var(--border-strong);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <i class="fas fa-user" style="font-size:.6rem;color:var(--primary);"></i>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <p style="font-weight:700;font-size:.78rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</p>
+              <p style="font-size:.68rem;color:var(--text-muted);margin-top:1px;">${visitType}</p>
+            </div>
+          </div>`;
+        }).join('');
+      }
+
       document.getElementById('oMorningCount').textContent = appts.morning.length;
-      document.getElementById('oMorningPatients').innerHTML = mNames || '<span style="opacity:.5;">لا يوجد مواعيد</span>';
-      // Evening patients
-      const eNames = appts.evening.map(r => '• ' + (r.PatientName||'—')).join('<br>');
+      renderMiniCards(appts.morning, document.getElementById('oMorningPatients'));
       document.getElementById('oEveningCount').textContent = appts.evening.length;
-      document.getElementById('oEveningPatients').innerHTML = eNames || '<span style="opacity:.5;">لا يوجد مواعيد</span>';
+      renderMiniCards(appts.evening, document.getElementById('oEveningPatients'));
       document.getElementById('oSelectedDayInfo').classList.remove('hidden');
       oUpdateSummary();
       oRenderCalendar();
     }
 
+    window.oSelectSlot = function(slot) {
+      oManualData.selectedSlot = slot;
+      const mEl = document.getElementById('oSlotMorning');
+      const eEl = document.getElementById('oSlotEvening');
+      if (slot === 'Morning') {
+        mEl.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 12px;border-radius:7px;cursor:pointer;transition:all .18s;background:var(--primary);color:white;font-weight:700;font-size:.85rem;box-shadow:0 2px 6px rgba(13,148,136,.3);';
+        eEl.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 12px;border-radius:7px;cursor:pointer;transition:all .18s;color:var(--text-muted);font-weight:600;font-size:.85rem;';
+      } else {
+        eEl.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 12px;border-radius:7px;cursor:pointer;transition:all .18s;background:#4f46e5;color:white;font-weight:700;font-size:.85rem;box-shadow:0 2px 6px rgba(79,70,229,.3);';
+        mEl.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 12px;border-radius:7px;cursor:pointer;transition:all .18s;color:var(--text-muted);font-weight:600;font-size:.85rem;';
+      }
+      oUpdateSummary();
+    };
+
     window.oPrevMonth = function() { oCalDate.setMonth(oCalDate.getMonth()-1); oRenderCalendar(); };
     window.oNextMonth = function() { oCalDate.setMonth(oCalDate.getMonth()+1); oRenderCalendar(); };
 
     document.addEventListener('DOMContentLoaded', function() {
-      // Slot pickers
-      document.getElementById('oSlotMorning').addEventListener('click', function() {
-        this.classList.add('selected'); document.getElementById('oSlotEvening').classList.remove('selected');
-        oManualData.selectedSlot = 'Morning'; oUpdateSummary();
-      });
-      document.getElementById('oSlotEvening').addEventListener('click', function() {
-        this.classList.add('selected'); document.getElementById('oSlotMorning').classList.remove('selected');
-        oManualData.selectedSlot = 'Evening'; oUpdateSummary();
-      });
       // Live input
       ['oManualPatientName','oManualPhone','oManualBirthDate','oManualAddress'].forEach(id => {
         document.getElementById(id).addEventListener('input', function(e) {
@@ -4940,7 +4942,14 @@
       });
       document.getElementById('oBackToStep2').addEventListener('click', () => oGoToStep(2));
       document.getElementById('oSubmitManualAppointment').addEventListener('click', function() {
-        const phone = normalizePhone(oManualData.phone);
+        // Validate all fields (important on desktop where steps are shown together)
+        if (!oManualData.patientName) { showToast('أدخل اسم المريض', 'error'); document.getElementById('oManualPatientName').focus(); return; }
+        if (!oManualData.phone) { showToast('أدخل رقم الهاتف', 'error'); document.getElementById('oManualPhone').focus(); return; }
+        if (!oManualData.visitType) { showToast('اختر نوع الزيارة', 'error'); document.getElementById('oManualVisitType').focus(); return; }
+        oManualData.selectedDate = document.getElementById('oManualDateInput').value;
+        if (!oManualData.selectedDate) { showToast('اختر تاريخ الموعد', 'error'); return; }
+        if (isDayClosed(oManualData.selectedDate)) { showToast('هذا اليوم مغلق للحجز', 'error'); return; }
+        oUpdateSummary();
         const appointment = {
           PatientName: oManualData.patientName, Phone: oManualData.phone,
           BirthDate: oManualData.birthDate, Address: oManualData.address,
@@ -4976,7 +4985,7 @@
         </div>
       </div>
 
-      <!-- Step indicator -->
+      <!-- Step indicator (mobile only) -->
       <div class="form-step-indicator" id="overlayStepIndicator">
         <div class="step-dot-wrapper active" id="overlayStep1Wrapper">
           <div class="step-dot active" id="overlayStep1Dot">1</div>
@@ -4993,6 +5002,16 @@
           <span class="step-dot-label">تأكيد</span>
         </div>
       </div>
+
+      <!-- Desktop 3-column grid / Mobile: transparent wrapper -->
+      <div id="oDesktopGrid">
+
+        <!-- ── COL 1: البيانات ── -->
+        <div class="o-step-col">
+          <div class="o-step-col-title">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="color:white;font-weight:800;font-size:.8rem;">1</span></div>
+            <span style="font-weight:700;font-size:.9rem;color:var(--text);">بيانات المريض</span>
+          </div>
 
       <!-- Step 1 -->
       <div id="overlayStep1" class="form-step active">
@@ -5017,76 +5036,85 @@
           <button id="oNextToStep2" class="btn-primary">التالي <i class="fas fa-arrow-left"></i></button>
         </div>
       </div>
+        </div><!-- /o-step-col 1 -->
+
+        <!-- ── COL 2: الموعد ── -->
+        <div class="o-step-col">
+          <div class="o-step-col-title">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="color:white;font-weight:800;font-size:.8rem;">2</span></div>
+            <span style="font-weight:700;font-size:.9rem;color:var(--text);">اختيار الموعد</span>
+          </div>
 
       <!-- Step 2 — Calendar Picker -->
       <div id="overlayStep2" class="form-step">
         <input type="hidden" id="oManualDateInput">
 
-        <!-- Calendar Header -->
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-          <button onclick="oPrevMonth()" class="compact-nav-btn" type="button"><i class="fas fa-chevron-right"></i></button>
-          <div style="text-align:center;">
-            <span id="oCalMonth" style="font-weight:700; font-size:.92rem; color:var(--text);"></span>
+        <!-- Calendar — same design as main calendar -->
+        <div class="compact-calendar-container" style="margin-bottom:12px; padding:14px !important;">
+          <div class="compact-calendar-header" style="margin-bottom:10px;">
+            <button onclick="oPrevMonth()" class="compact-nav-btn" type="button"><i class="fas fa-chevron-right"></i></button>
+            <div style="text-align:center;">
+              <span id="oCalMonth" style="font-weight:700; font-size:.92rem; color:var(--text);"></span>
+              <div class="density-legend" style="margin-top:3px;">
+                <div style="display:flex;align-items:center;gap:4px;"><div style="width:7px;height:7px;border-radius:50%;background:var(--green);"></div><span>خفيف</span></div>
+                <div style="display:flex;align-items:center;gap:4px;"><div style="width:7px;height:7px;border-radius:50%;background:var(--amber);"></div><span>متوسط</span></div>
+                <div style="display:flex;align-items:center;gap:4px;"><div style="width:7px;height:7px;border-radius:50%;background:var(--red);"></div><span>مزدحم</span></div>
+              </div>
+            </div>
+            <button onclick="oNextMonth()" class="compact-nav-btn" type="button"><i class="fas fa-chevron-left"></i></button>
           </div>
-          <button onclick="oNextMonth()" class="compact-nav-btn" type="button"><i class="fas fa-chevron-left"></i></button>
-        </div>
-
-        <!-- Day names -->
-        <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:3px; margin-bottom:3px;">
-          <div style="font-size:.62rem;font-weight:700;color:var(--text-muted);text-align:center;padding:3px 0;">السبت</div>
-          <div style="font-size:.62rem;font-weight:700;color:var(--text-muted);text-align:center;padding:3px 0;">الجمعة</div>
-          <div style="font-size:.62rem;font-weight:700;color:var(--text-muted);text-align:center;padding:3px 0;">الخميس</div>
-          <div style="font-size:.62rem;font-weight:700;color:var(--text-muted);text-align:center;padding:3px 0;">الأربعاء</div>
-          <div style="font-size:.62rem;font-weight:700;color:var(--text-muted);text-align:center;padding:3px 0;">الثلاثاء</div>
-          <div style="font-size:.62rem;font-weight:700;color:var(--text-muted);text-align:center;padding:3px 0;">الإثنين</div>
-          <div style="font-size:.62rem;font-weight:700;color:var(--text-muted);text-align:center;padding:3px 0;">الأحد</div>
-        </div>
-
-        <!-- Calendar Grid -->
-        <div id="oCalGrid" style="display:grid; grid-template-columns:repeat(7,1fr); gap:3px; margin-bottom:12px;"></div>
-
-        <!-- Legend -->
-        <div style="display:flex; flex-wrap:wrap; gap:10px; font-size:.68rem; color:var(--text-muted); margin-bottom:12px; justify-content:center;">
-          <div style="display:flex;align-items:center;gap:4px;"><i class="fas fa-sun" style="color:#d97706;font-size:.7rem;"></i> مواعيد الصباح</div>
-          <div style="display:flex;align-items:center;gap:4px;"><i class="fas fa-moon" style="color:#6366f1;font-size:.7rem;"></i> مواعيد المساء</div>
-          <div style="display:flex;align-items:center;gap:4px;"><div style="width:10px;height:10px;border-radius:3px;background:var(--red-light);border:1px solid #fca5a5;"></div> مغلق</div>
-          <div style="display:flex;align-items:center;gap:4px;"><div style="width:10px;height:10px;border-radius:50%;background:var(--primary);"></div> اليوم المختار</div>
+          <div class="compact-calendar-grid" style="margin-bottom:6px;">
+            <div class="compact-calendar-day-name">الجمعة</div>
+            <div class="compact-calendar-day-name">السبت</div>
+            <div class="compact-calendar-day-name">الأحد</div>
+            <div class="compact-calendar-day-name">الإثنين</div>
+            <div class="compact-calendar-day-name">الثلاثاء</div>
+            <div class="compact-calendar-day-name">الأربعاء</div>
+            <div class="compact-calendar-day-name">الخميس</div>
+          </div>
+          <div id="oCalGrid" class="compact-calendar-grid"></div>
         </div>
 
         <!-- Selected day info -->
-        <div id="oSelectedDayInfo" class="hidden" style="background:var(--primary-light); border:1.5px solid var(--border-strong); border-radius:var(--radius); padding:14px; margin-bottom:12px;">
-          <p style="font-weight:700; font-size:.85rem; color:var(--primary); margin-bottom:10px;">
-            <i class="fas fa-calendar-day" style="margin-left:6px;"></i>
+        <div id="oSelectedDayInfo" class="hidden" style="margin-bottom:12px;">
+          <p style="font-weight:700; font-size:.82rem; color:var(--primary); margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+            <i class="fas fa-calendar-day"></i>
             <span id="oSelectedDayLabel"></span>
           </p>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-            <!-- Morning -->
-            <div id="oInfoMorning" style="background:white; border-radius:var(--radius-sm); padding:10px; border:1.5px solid var(--border);">
-              <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
-                <i class="fas fa-sun" style="color:#d97706; font-size:.8rem;"></i>
-                <span style="font-weight:700; font-size:.8rem;">الصباح</span>
-                <span id="oMorningCount" style="background:#fef3c7; color:#d97706; padding:1px 8px; border-radius:20px; font-size:.7rem; font-weight:700; margin-right:auto;">0</span>
-              </div>
-              <div id="oMorningPatients" style="font-size:.72rem; color:var(--text-muted); line-height:1.6;"></div>
+
+          <!-- Morning section -->
+          <div style="margin-bottom:8px;">
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+              <i class="fas fa-sun" style="color:#d97706; font-size:.75rem;"></i>
+              <span style="font-weight:700; font-size:.78rem; color:var(--text);">الصباح</span>
+              <span id="oMorningCount" style="background:#fef3c7; color:#d97706; padding:1px 8px; border-radius:20px; font-size:.65rem; font-weight:700;">0</span>
             </div>
-            <!-- Evening -->
-            <div id="oInfoEvening" style="background:white; border-radius:var(--radius-sm); padding:10px; border:1.5px solid var(--border);">
-              <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
-                <i class="fas fa-moon" style="color:#6366f1; font-size:.8rem;"></i>
-                <span style="font-weight:700; font-size:.8rem;">المساء</span>
-                <span id="oEveningCount" style="background:#ede9fe; color:#6366f1; padding:1px 8px; border-radius:20px; font-size:.7rem; font-weight:700; margin-right:auto;">0</span>
-              </div>
-              <div id="oEveningPatients" style="font-size:.72rem; color:var(--text-muted); line-height:1.6;"></div>
+            <div id="oMorningPatients" style="display:flex; flex-direction:column; gap:5px;"></div>
+          </div>
+
+          <!-- Evening section -->
+          <div>
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+              <i class="fas fa-moon" style="color:#6366f1; font-size:.75rem;"></i>
+              <span style="font-weight:700; font-size:.78rem; color:var(--text);">المساء</span>
+              <span id="oEveningCount" style="background:#ede9fe; color:#6366f1; padding:1px 8px; border-radius:20px; font-size:.65rem; font-weight:700;">0</span>
             </div>
+            <div id="oEveningPatients" style="display:flex; flex-direction:column; gap:5px;"></div>
           </div>
         </div>
 
         <!-- Slot selector (appears after day selected) -->
-        <div id="oSlotSelectorWrapper" class="hidden">
-          <label class="form-label">اختر الفترة</label>
-          <div style="display:flex; gap:10px; margin-bottom:12px;">
-            <div id="oSlotMorning" class="slot-option selected"><i class="fas fa-sun" style="color:#d97706;"></i><span>صباحاً</span></div>
-            <div id="oSlotEvening" class="slot-option"><i class="fas fa-moon" style="color:#6366f1;"></i><span>مساءً</span></div>
+        <div id="oSlotSelectorWrapper" class="hidden" style="margin-bottom:12px;">
+          <label class="form-label" style="margin-bottom:6px;">اختر الفترة</label>
+          <div style="display:flex; background:var(--bg); border:1.5px solid var(--border); border-radius:var(--radius-sm); padding:4px; gap:4px;">
+            <div id="oSlotMorning" onclick="oSelectSlot('Morning')" style="flex:1; display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 12px; border-radius:7px; cursor:pointer; transition:all .18s; background:var(--primary); color:white; font-weight:700; font-size:.85rem; box-shadow:0 2px 6px rgba(13,148,136,.3);">
+              <i class="fas fa-sun" style="font-size:.9rem; color:#fcd34d;"></i>
+              <span>صباحاً</span>
+            </div>
+            <div id="oSlotEvening" onclick="oSelectSlot('Evening')" style="flex:1; display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 12px; border-radius:7px; cursor:pointer; transition:all .18s; color:var(--text-muted); font-weight:600; font-size:.85rem;">
+              <i class="fas fa-moon" style="font-size:.9rem; color:#a5b4fc;"></i>
+              <span>مساءً</span>
+            </div>
           </div>
         </div>
 
@@ -5108,6 +5136,14 @@
           <button id="oNextToStep3" class="btn-primary">التالي <i class="fas fa-arrow-left"></i></button>
         </div>
       </div>
+        </div><!-- /o-step-col 2 -->
+
+        <!-- ── COL 3: التأكيد ── -->
+        <div class="o-step-col">
+          <div class="o-step-col-title">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="color:white;font-weight:800;font-size:.8rem;">3</span></div>
+            <span style="font-weight:700;font-size:.9rem;color:var(--text);">تأكيد الحجز</span>
+          </div>
 
       <!-- Step 3 -->
       <div id="overlayStep3" class="form-step">
@@ -5126,9 +5162,12 @@
           <button id="oSubmitManualAppointment" class="btn-primary" style="background:linear-gradient(135deg,#059669,#10b981)!important;">تسجيل الموعد</button>
         </div>
       </div>
+        </div><!-- /o-step-col 3 -->
 
-    </div>
-  </div>
+      </div><!-- /oDesktopGrid -->
+
+    </div><!-- /manualFormPanel -->
+  </div><!-- /manualFormOverlay -->
 
   <!-- ========== NOTES JAVASCRIPT ========== -->
   <script>
