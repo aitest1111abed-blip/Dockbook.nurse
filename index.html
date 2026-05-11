@@ -3300,12 +3300,56 @@
       document.removeEventListener('click', _nurseOutsideHandler);
     }
 
-    var _unsubAppointments = null;
-    var _unsubPatients     = null;
-    var _unsubClosedDays   = null;
-    var _unsubNurseAlerts  = null;
+    // ── ترحيل بيانات localStorage القديمة إلى Firestore ──
+    function migrateLocalStorageToFirestore() {
+      try {
+        var oldRecords = JSON.parse(localStorage.getItem('doctorAppointments') || '[]');
+        var oldPatients = JSON.parse(localStorage.getItem('doctorPatients') || '{}');
+        if (!oldRecords.length && !Object.keys(oldPatients).length) return;
+
+        console.log('[DocBook] بدء ترحيل البيانات القديمة:', oldRecords.length, 'مواعيد،', Object.keys(oldPatients).length, 'مرضى');
+        showToast('جاري ترحيل البيانات القديمة...', 'info');
+
+        var batch = window._fb.writeBatch();
+        var count = 0;
+
+        // ترحيل المواعيد
+        oldRecords.forEach(function(r) {
+          if (!r.id) return;
+          var ref = window._fb.docRef('appointments', r.id);
+          batch.set(ref, Object.assign({}, r, { migratedFrom: 'localStorage' }), { merge: true });
+          count++;
+        });
+
+        // ترحيل المرضى
+        Object.values(oldPatients).forEach(function(p) {
+          if (!p.id) return;
+          var ref = window._fb.docRef('patients', p.id);
+          batch.set(ref, Object.assign({}, p, { migratedFrom: 'localStorage' }), { merge: true });
+          count++;
+        });
+
+        if (count === 0) return;
+
+        batch.commit().then(function() {
+          console.log('[DocBook] تم ترحيل', count, 'سجل بنجاح');
+          showToast('تم ترحيل البيانات القديمة بنجاح ✓', 'success');
+          // حذف من localStorage بعد الترحيل الناجح
+          localStorage.removeItem('doctorAppointments');
+          localStorage.removeItem('doctorPatients');
+          localStorage.removeItem('closedDays');
+        }).catch(function(e) {
+          console.error('[DocBook] فشل الترحيل:', e);
+        });
+
+      } catch(e) {
+        console.error('[DocBook] خطأ في الترحيل:', e);
+      }
+    }
 
     function initializeData() {
+      // ترحيل البيانات القديمة من localStorage إذا وُجدت
+      migrateLocalStorageToFirestore();
       // ── المواعيد ──
       if (_unsubAppointments) _unsubAppointments();
       _unsubAppointments = window._fb.onSnapshot(
@@ -3403,9 +3447,20 @@
     function updateAppointmentStatus(id, status) {
       const record = allRecords.find(r => r.id === id);
       if (!record) { showToast('لم يُوجد الموعد','error'); return; }
-      console.log('[DocBook] updateAppointmentStatus', id, status, 'auth:', window._fb.auth.currentUser?.uid);
       const ref = window._fb.docRef('appointments', id);
+      // نحاول updateDoc أولاً — إذا لم يوجد المستند نستخدم setDoc لإنشائه
       window._fb.updateDoc(ref, { Status: status, updatedAt: window._fb.serverTimestamp() })
+        .catch(function(e) {
+          if (e.code === 'not-found') {
+            // الموعد من localStorage القديم — انقله لـ Firestore الآن
+            return window._fb.setDoc(ref, Object.assign({}, record, {
+              Status: status,
+              updatedAt: window._fb.serverTimestamp(),
+              migratedAt: window._fb.serverTimestamp()
+            }));
+          }
+          throw e;
+        })
         .then(function() {
           showToast('تم تحديث الحالة','success', true);
           if (status === 'Accepted') {
