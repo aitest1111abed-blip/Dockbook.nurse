@@ -2970,20 +2970,42 @@
     function normalizePhone(p) { return (p||'').replace(/[^\d+]/g,''); }
     function escapeHtml(text) { const div=document.createElement('div'); div.textContent=text; return div.innerHTML; }
 
+    // AudioContext مشترك للإشعارات — يُفتح مرة واحدة ويُبقى حياً
+    var _notifAudioCtx = null;
+    function _getNotifCtx() {
+      if (!_notifAudioCtx || _notifAudioCtx.state === 'closed') {
+        try { _notifAudioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { return null; }
+      }
+      return _notifAudioCtx;
+    }
+    // تفعيل AudioContext عند أول تفاعل
+    function _primeNotifAudio() {
+      var ctx = _getNotifCtx();
+      if (ctx && ctx.state === 'suspended') ctx.resume();
+      document.removeEventListener('click',      _primeNotifAudio);
+      document.removeEventListener('touchstart', _primeNotifAudio);
+      document.removeEventListener('keydown',    _primeNotifAudio);
+    }
+    document.addEventListener('click',      _primeNotifAudio);
+    document.addEventListener('touchstart', _primeNotifAudio);
+    document.addEventListener('keydown',    _primeNotifAudio);
+
     function playNotifSound() {
-      try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const o = ctx.createOscillator();
-        const g = ctx.createGain();
-        o.connect(g); g.connect(ctx.destination);
-        o.type = 'sine';
-        o.frequency.setValueAtTime(880, ctx.currentTime);
-        o.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.12);
-        g.gain.setValueAtTime(0.25, ctx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
-        o.start(ctx.currentTime);
-        o.stop(ctx.currentTime + 0.35);
-      } catch(e) {}
+      var ctx = _getNotifCtx(); if (!ctx) return;
+      function _doPlay() {
+        try {
+          var now = ctx.currentTime;
+          [0, 0.18, 0.36].forEach(function(t) {
+            var o = ctx.createOscillator(), g = ctx.createGain();
+            o.connect(g); g.connect(ctx.destination);
+            o.type = 'sine'; o.frequency.value = 880;
+            g.gain.setValueAtTime(0.35, now + t);
+            g.gain.exponentialRampToValueAtTime(0.001, now + t + 0.22);
+            o.start(now + t); o.stop(now + t + 0.22);
+          });
+        } catch(e) {}
+      }
+      if (ctx.state === 'suspended') ctx.resume().then(_doPlay); else _doPlay();
     }
 
     function showToast(msg, type='info', sound=false) {
