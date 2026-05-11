@@ -333,6 +333,31 @@
       transition: transform .25s cubic-bezier(.34,1.56,.64,1);
     }
     #confirmSheet.show .sheet-box { transform: translateY(0); }
+    /* إشعار مخصص — طلب جديد / تم القبول */
+    #notifToast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9998;
+      background: var(--primary);
+      color: white;
+      font-weight: 800;
+      font-size: .92rem;
+      padding: 13px 22px;
+      border-radius: var(--radius);
+      box-shadow: 0 4px 20px rgba(13,148,136,.35);
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: opacity .25s ease, transform .25s ease;
+      white-space: nowrap;
+    }
+    #notifToast.show {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
     .toast {
       position: fixed;
       bottom: 24px;
@@ -2975,6 +3000,17 @@
       toast._hideTimer = setTimeout(()=>toast.classList.add('hidden'), 3000);
     }
 
+    // إشعار مخصص أسفل يمين — بدون أيقونة، يبقى 8 ثوانٍ، مع صوت
+    function showNotifToast(msg) {
+      const el = document.getElementById('notifToast');
+      if (!el) return;
+      el.textContent = msg;
+      el.classList.add('show');
+      playNotifSound();
+      clearTimeout(el._timer);
+      el._timer = setTimeout(() => el.classList.remove('show'), 8000);
+    }
+
     // ================== localStorage CRUD ==================
     // ── FAB دوال زر الزائد (لوحة الممرضة) ──
     function toggleMobFab() {
@@ -3215,7 +3251,7 @@
             updateCounts(); calculateDensity(); renderCalendar();
             if (selectedDayStr) renderAgendaForDay(selectedDayStr);
             if (currentSection === 'appointments') renderBothAppointmentColumns();
-            showToast('📥 حجز جديد من المريض!', 'success', true);
+            showNotifToast('طلب جديد');
           }
         };
       } catch(e) {}
@@ -3242,7 +3278,12 @@
         notifyOtherTab(STORAGE_KEY);
         allRecords = records;
         showToast('تم تحديث الحالة','success', true);
-        if (status==='Accepted') sendWhatsAppConfirmation(record.Phone,record.PatientName,record.Date,record.Slot,record.VisitType);
+        if (status==='Accepted') {
+          sendWhatsAppConfirmation(record.Phone,record.PatientName,record.Date,record.Slot,record.VisitType);
+          // إشعار الطبيب بقبول الموعد
+          try { new BroadcastChannel('nurseAccepted').postMessage({ type:'accepted', ts: Date.now(), name: record.PatientName }); } catch(e) {}
+          try { localStorage.setItem('nurseAcceptedNotif', JSON.stringify({ type:'accepted', ts: Date.now(), name: record.PatientName })); } catch(e) {}
+        }
         else if (status==='Rejected') sendWhatsAppRejection(record.Phone,record.PatientName,record.Date, record._rejectAltSlots||[]);
         else if (status==='Cancelled') sendWhatsAppCancellation(record.Phone,record.PatientName,record.Date);
         updateCounts(); calculateDensity(); renderCalendar();
@@ -5664,6 +5705,8 @@
       </div>
     </div>
   </div>
+  <!-- إشعار طلب جديد -->
+  <div id="notifToast"></div>
 
 </body>
 </html>
