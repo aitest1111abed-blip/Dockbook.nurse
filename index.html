@@ -2022,14 +2022,17 @@
       function tryLogin() {
         window._fb.signIn(email, pass)
           .then(function(cred) {
-            // تحقق من الدور في Firestore
-            return window._fb.getDoc('users', cred.user.uid).then(function(snap) {
+            var uid = cred.user.uid;
+            console.log('[DocBook] uid:', uid);
+            return window._fb.getDoc('users', uid).then(function(snap) {
+              console.log('[DocBook] doc exists:', snap.exists(), 'data:', snap.exists() ? JSON.stringify(snap.data()) : 'none');
               var role = snap.exists() ? snap.data().role : null;
+              console.log('[DocBook] role:', role);
               if (role !== 'nurse') {
                 return window._fb.signOut().then(function() {
                   btn.disabled = false; btn.textContent = 'تسجيل الدخول';
                   err.style.display = 'block';
-                  err.textContent = 'هذا الحساب غير مصرح له بالدخول هنا';
+                  err.textContent = 'هذا الحساب غير مصرح له بالدخول هنا (role: ' + role + ')';
                 });
               }
               btn.disabled = false; btn.textContent = 'تسجيل الدخول';
@@ -3399,14 +3402,14 @@
 
     function updateAppointmentStatus(id, status) {
       const record = allRecords.find(r => r.id === id);
-      if (!record) return;
+      if (!record) { showToast('لم يُوجد الموعد','error'); return; }
+      console.log('[DocBook] updateAppointmentStatus', id, status, 'auth:', window._fb.auth.currentUser?.uid);
       const ref = window._fb.docRef('appointments', id);
       window._fb.updateDoc(ref, { Status: status, updatedAt: window._fb.serverTimestamp() })
         .then(function() {
           showToast('تم تحديث الحالة','success', true);
           if (status === 'Accepted') {
             sendWhatsAppConfirmation(record.Phone, record.PatientName, record.Date, record.Slot, record.VisitType);
-            // إشعار الطبيب عبر Firestore alerts
             window._fb.addDoc(window._fb.col('alerts'), {
               type:      'accepted',
               direction: 'nurseToDoctor',
@@ -3420,7 +3423,10 @@
             sendWhatsAppCancellation(record.Phone, record.PatientName, record.Date);
           }
         })
-        .catch(function(e) { showToast('فشل التحديث','error'); console.error(e); });
+        .catch(function(e) {
+          console.error('[DocBook] updateDoc failed:', e.code, e.message);
+          showToast('فشل التحديث: ' + e.code, 'error');
+        });
     }
 
     function deleteAppointment(id) {
