@@ -2034,12 +2034,14 @@
             return window._fb.getDoc('users', cred.user.uid).then(function(snap) {
               var role = snap.exists() ? snap.data().role : null;
               if (role !== 'nurse') {
+                _authResolved = false;
                 return window._fb.signOut().then(function() {
                   btn.disabled = false; btn.textContent = 'تسجيل الدخول';
                   err.style.display = 'block';
                   err.textContent = 'هذا الحساب غير مصرح له بالدخول هنا';
                 });
               }
+              _authResolved = true;
               btn.disabled = false; btn.textContent = 'تسجيل الدخول';
             });
           })
@@ -2057,22 +2059,35 @@
     document.getElementById('loginPassword').addEventListener('keydown', function(e){ if(e.key==='Enter') doLocalLogin(); });
     document.getElementById('loginUser').addEventListener('keydown', function(e){ if(e.key==='Enter') doLocalLogin(); });
 
+    var _authResolved = false;
+    var _checkingRole  = false;
+
     function initAuthWatch() {
       window._fb.onAuth(function(user) {
         var ov = document.getElementById('loginOverlay');
         if (user) {
+          _checkingRole = true;
           window._fb.getDoc('users', user.uid).then(function(snap) {
+            _checkingRole = false;
             var role = snap.exists() ? snap.data().role : null;
             if (role !== 'nurse') {
+              _authResolved = false;
               window._fb.signOut();
               ov.style.display = 'flex'; ov.style.opacity = '1';
+              var errEl = document.getElementById('loginError');
+              if (errEl) { errEl.style.display='block'; errEl.textContent='هذا الحساب غير مصرح له بالدخول هنا'; }
               return;
             }
+            _authResolved = true;
             ov.style.transition = 'opacity .3s'; ov.style.opacity = '0';
             setTimeout(function(){ ov.style.display = 'none'; }, 300);
             if (typeof initializeData === 'function') initializeData();
+          }).catch(function(e) {
+            _checkingRole = false;
+            console.error('[Auth role check]', e);
           });
         } else {
+          if (_checkingRole || _authResolved) return;
           ov.style.display = 'flex'; ov.style.opacity = '1';
         }
       });
@@ -3407,7 +3422,7 @@
       // تنبيهات الطبيب للممرضة
       if (_unsubNurseAlerts) _unsubNurseAlerts();
       _unsubNurseAlerts = window._fb.onSnapshot(
-        window._fb.query(window._fb.col('alerts'), window._fb.orderBy('createdAt', 'desc')),
+        window._fb.col('alerts'),
         function(snap) {
           snap.docChanges().forEach(function(change) {
             if (change.type !== 'added') return;
@@ -3419,7 +3434,8 @@
             if (typeof showDoctorAlert === 'function') showDoctorAlert({ type: d.type, message: d.message });
             window._fb.updateDoc(change.doc.ref, { read: true });
           });
-        }
+        },
+        function(e) { console.error('[alerts]', e); }
       );
 
       // الإعدادات
