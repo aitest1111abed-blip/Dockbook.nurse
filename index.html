@@ -2021,8 +2021,19 @@
 
       function tryLogin() {
         window._fb.signIn(email, pass)
-          .then(function() {
-            btn.disabled = false; btn.textContent = 'تسجيل الدخول';
+          .then(function(cred) {
+            // تحقق من الدور في Firestore
+            return window._fb.getDoc('users', cred.user.uid).then(function(snap) {
+              var role = snap.exists() ? snap.data().role : null;
+              if (role !== 'nurse') {
+                return window._fb.signOut().then(function() {
+                  btn.disabled = false; btn.textContent = 'تسجيل الدخول';
+                  err.style.display = 'block';
+                  err.textContent = 'هذا الحساب غير مصرح له بالدخول هنا';
+                });
+              }
+              btn.disabled = false; btn.textContent = 'تسجيل الدخول';
+            });
           })
           .catch(function() {
             btn.disabled = false; btn.textContent = 'تسجيل الدخول';
