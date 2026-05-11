@@ -3354,7 +3354,11 @@
       if (_unsubAppt) _unsubAppt();
       _unsubAppt = window._fb.onSnapshot(window._fb.col('appointments'),
         function(snap) {
-          allRecords = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+          allRecords = snap.docs.map(function(d) {
+            var data = d.data();
+            data.id = d.id; // ضمان أن id دائماً يساوي Firestore document ID
+            return data;
+          });
           // تحويل Accepted منتهي → NoShow
           var toUpdate = [];
           allRecords.forEach(function(r) {
@@ -3441,7 +3445,14 @@
       const record = allRecords.find(r => r.id === id);
       if (!record) { showToast('لم يُوجد الموعد','error'); return; }
       const ref = window._fb.docRef('appointments', id);
-      // upsert: setDoc مع merge لتفادي not-found
+
+      // تحديث فوري في الذاكرة (optimistic update)
+      record.Status = status;
+      if (currentSection === 'appointments') renderBothAppointmentColumns();
+      updateCounts(); calculateDensity(); renderCalendar();
+      if (selectedDayStr) renderAgendaForDay(selectedDayStr);
+
+      // حفظ في Firestore
       window._fb.setDoc(ref, Object.assign({}, record, {
         Status: status, updatedAt: window._fb.serverTimestamp()
       }), { merge: true })
