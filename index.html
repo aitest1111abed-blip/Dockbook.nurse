@@ -984,6 +984,23 @@
       color: var(--text-muted);
       padding: 4px 0;
       text-transform: uppercase;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: clip;
+      min-width: 0;
+    }
+    @media (max-width: 400px) {
+      .compact-calendar-day-name {
+        font-size: 0.58rem;
+        padding: 2px 0;
+      }
+      .compact-calendar-grid {
+        gap: 2px;
+      }
+      .compact-calendar-day {
+        padding: 6px 1px;
+        font-size: 0.72rem;
+      }
     }
     .compact-calendar-day {
       padding: 8px 2px;
