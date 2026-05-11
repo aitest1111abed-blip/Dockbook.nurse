@@ -2970,7 +2970,7 @@
     function normalizePhone(p) { return (p||'').replace(/[^\d+]/g,''); }
     function escapeHtml(text) { const div=document.createElement('div'); div.textContent=text; return div.innerHTML; }
 
-    // AudioContext مشترك للإشعارات — يُفتح مرة واحدة ويُبقى حياً
+    // ── Web Audio API — AudioContext مشترك مع keepalive ──
     var _notifAudioCtx = null;
     function _getNotifCtx() {
       if (!_notifAudioCtx || _notifAudioCtx.state === 'closed') {
@@ -2978,7 +2978,7 @@
       }
       return _notifAudioCtx;
     }
-    // تفعيل AudioContext عند أول تفاعل
+    // تفعيل مبكر عند أول تفاعل
     function _primeNotifAudio() {
       var ctx = _getNotifCtx();
       if (ctx && ctx.state === 'suspended') ctx.resume();
@@ -2989,6 +2989,18 @@
     document.addEventListener('click',      _primeNotifAudio);
     document.addEventListener('touchstart', _primeNotifAudio);
     document.addEventListener('keydown',    _primeNotifAudio);
+    // keepalive: نبضة صامتة كل 30 ثانية لإبقاء Context يقظاً
+    setInterval(function() {
+      var ctx = _getNotifCtx();
+      if (ctx && ctx.state === 'running') {
+        try {
+          var o = ctx.createOscillator(), g = ctx.createGain();
+          g.gain.value = 0;
+          o.connect(g); g.connect(ctx.destination);
+          o.start(); o.stop(ctx.currentTime + 0.001);
+        } catch(e) {}
+      }
+    }, 30000);
 
     function playNotifSound() {
       var ctx = _getNotifCtx(); if (!ctx) return;
@@ -5729,6 +5741,5 @@
   </div>
   <!-- إشعار طلب جديد -->
   <div id="notifToast"></div>
-
 </body>
 </html>
