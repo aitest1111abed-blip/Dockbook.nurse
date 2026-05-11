@@ -2057,7 +2057,7 @@
         if (user) {
           ov.style.transition = 'opacity .3s'; ov.style.opacity = '0';
           setTimeout(function(){ ov.style.display = 'none'; }, 300);
-          if (typeof loadData === 'function') loadData();
+          if (typeof initializeData === 'function') initializeData();
         } else {
           ov.style.display = 'flex'; ov.style.opacity = '1';
         }
@@ -4969,7 +4969,7 @@
 
     // ================== DOMContentLoaded ==================
     document.addEventListener('DOMContentLoaded',()=>{
-      initializeData();
+      // initializeData() تُستدعى من onAuth بعد التحقق من تسجيل الدخول
       applySettings();
       setActiveSection('calendar');
       document.getElementById('nurseHeaderDate').textContent = today.toLocaleDateString('ar-EG',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
