@@ -1953,44 +1953,6 @@
   <link rel="apple-touch-icon" sizes="192x192" href="./icon-192.png"/>
   <link rel="manifest" href="./manifest.json"/>
   <script>if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(function(){});</script>
-  <!-- Firebase SDK -->
-  <script type="module">
-    import { initializeApp }                        from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
-                                                    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-    import { getFirestore, doc, collection, getDocs, getDoc, setDoc, updateDoc, deleteDoc,
-             onSnapshot, addDoc, query, orderBy, serverTimestamp, writeBatch }
-                                                    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-
-    const _fbConfig = {
-      apiKey:            "AIzaSyDvAWhgChLeBIAr4FfQ-_FA_TSfLKK218E",
-      authDomain:        "docbook-194c2.firebaseapp.com",
-      projectId:         "docbook-194c2",
-      storageBucket:     "docbook-194c2.firebasestorage.app",
-      messagingSenderId: "764242732211",
-      appId:             "1:764242732211:web:a560190b7e81dacea77cc6"
-    };
-    const _app  = initializeApp(_fbConfig);
-    const _auth = getAuth(_app);
-    const _db   = getFirestore(_app);
-
-    window._fb = {
-      auth: _auth, db: _db,
-      signIn:  (email, pass) => signInWithEmailAndPassword(_auth, email, pass),
-      signOut: ()            => signOut(_auth),
-      onAuth:  (cb)          => onAuthStateChanged(_auth, cb),
-      col:        (...p)     => collection(_db, ...p),
-      docRef:     (...p)     => doc(_db, ...p),
-      getDoc:     (...p)     => getDoc(doc(_db, ...p)),
-      setDoc:     (ref, d)   => setDoc(ref, d),
-      updateDoc:  (ref, d)   => updateDoc(ref, d),
-      deleteDoc:  (ref)      => deleteDoc(ref),
-      addDoc:     (ref, d)   => addDoc(ref, d),
-      onSnapshot, query, orderBy, serverTimestamp, writeBatch: () => writeBatch(_db),
-    };
-    window._fbReady = true;
-    window.dispatchEvent(new Event('fbReady'));
-  </script>
 </head>
 
 <body>
@@ -2011,46 +1973,36 @@
   </div>
   <style>@keyframes loginCardIn{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}</style>
   <script>
-    function doLocalLogin() {
-      var email = (document.getElementById('loginUser').value.trim() || 'nurbook@gmail.com');
-      var pass  = document.getElementById('loginPassword').value;
-      var err   = document.getElementById('loginError');
-      var btn   = document.getElementById('loginBtn');
-      err.style.display = 'none';
-      btn.disabled = true; btn.textContent = 'جارٍ التحقق...';
-
-      function tryLogin() {
-        window._fb.signIn(email, pass)
-          .then(function() {
-            btn.disabled = false; btn.textContent = 'تسجيل الدخول';
-          })
-          .catch(function() {
-            btn.disabled = false; btn.textContent = 'تسجيل الدخول';
-            err.style.display = 'block';
-            err.textContent = 'بيانات الدخول غير صحيحة';
-          });
-      }
-      if (window._fbReady) tryLogin();
-      else window.addEventListener('fbReady', tryLogin, { once: true });
+    var NURSE_USERS_KEY = 'nurseUsers';
+    function getNurseUsers() {
+      try { var v = localStorage.getItem(NURSE_USERS_KEY); return v ? JSON.parse(v) : []; } catch(e) { return []; }
     }
-
+    function initDefaultNurseUsers() {
+      if (!getNurseUsers().length) {
+        localStorage.setItem(NURSE_USERS_KEY, JSON.stringify([
+          { username: 'nurse', password: '1234', role: 'nurse' }
+        ]));
+      }
+    }
+    initDefaultNurseUsers();
+    function doLocalLogin() {
+      var user = document.getElementById('loginUser').value.trim() || 'nurse';
+      var err  = document.getElementById('loginError');
+      err.style.display = 'none';
+      localStorage.setItem('docbookNurseSession', JSON.stringify({ username: user, role: 'nurse', ts: Date.now() }));
+      var ov = document.getElementById('loginOverlay');
+      ov.style.transition = 'opacity .3s'; ov.style.opacity = '0';
+      setTimeout(function(){ ov.style.display = 'none'; }, 300);
+    }
     document.getElementById('loginPassword').addEventListener('keydown', function(e){ if(e.key==='Enter') doLocalLogin(); });
     document.getElementById('loginUser').addEventListener('keydown', function(e){ if(e.key==='Enter') doLocalLogin(); });
-
-    function initAuthWatch() {
-      window._fb.onAuth(function(user) {
-        var ov = document.getElementById('loginOverlay');
-        if (user) {
-          ov.style.transition = 'opacity .3s'; ov.style.opacity = '0';
-          setTimeout(function(){ ov.style.display = 'none'; }, 300);
-          if (typeof loadData === 'function') loadData();
-        } else {
-          ov.style.display = 'flex'; ov.style.opacity = '1';
-        }
-      });
-    }
-    if (window._fbReady) initAuthWatch();
-    else window.addEventListener('fbReady', initAuthWatch, { once: true });
+    (function(){
+      var sess = null;
+      try { sess = JSON.parse(localStorage.getItem('docbookNurseSession')||'null'); } catch(e){}
+      var ov = document.getElementById('loginOverlay');
+      if (sess && sess.role === 'nurse') { ov.style.display = 'none'; }
+      else { ov.style.display = 'flex'; }
+    })();
   </script>
 
 
@@ -2964,7 +2916,7 @@
     const STORAGE_KEY        = 'doctorAppointments';
     const PATIENTS_STORAGE_KEY = 'doctorPatients';
     const CLOSED_DAYS_KEY    = 'closedDays';
-    const SETTINGS_KEY       = 'nurseSettings'; // kept for reference only
+    const SETTINGS_KEY       = 'nurseSettings';
     const NOTES_KEY          = 'sharedNotes';
 
     // ── Confirm Bottom-Sheet (global) ──
@@ -2993,14 +2945,16 @@
     };
 
     function lsGet(key, fallback) {
-      // يُستخدم فقط للقيم الـ UI المحلية (FAB position، reminder sent)
       try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch(e) { return fallback; }
     }
     function lsSet(key, val) {
-      try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {}
+      try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) { showToast('خطأ في الحفظ المحلي','error'); }
     }
     function notifyOtherTab(key) {
-      // لم تعد ضرورية — Firestore onSnapshot يُزامن تلقائياً
+      // يُطلق storage event لتحديث التاب الآخر فوراً
+      const dummy = '__notify_'+key+'_'+Date.now();
+      localStorage.setItem(dummy, '1');
+      localStorage.removeItem(dummy);
     }
 
     // ================== Constants ==================
@@ -3286,192 +3240,158 @@
       document.removeEventListener('click', _nurseOutsideHandler);
     }
 
-    var _unsubAppointments = null;
-    var _unsubPatients     = null;
-    var _unsubClosedDays   = null;
-    var _unsubNurseAlerts  = null;
-
     function initializeData() {
-      // ── المواعيد ──
-      if (_unsubAppointments) _unsubAppointments();
-      _unsubAppointments = window._fb.onSnapshot(
-        window._fb.col('appointments'),
-        function(snap) {
-          allRecords = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
-          // تحويل تلقائي Accepted منتهي → NoShow
-          var changed = [];
-          allRecords.forEach(function(r) {
-            if (r.Status === 'Accepted') {
-              const d = parseLocalISODate(normalizeDate(r.Date));
-              if (d < today) {
-                changed.push(window._fb.updateDoc(window._fb.docRef('appointments', r.id), { Status: 'NoShow' }));
-                r.Status = 'NoShow';
-              }
-            }
-          });
-          if (changed.length) Promise.all(changed).catch(function(){});
+      // تحميل البيانات من localStorage
+      allRecords   = lsGet(STORAGE_KEY, []);
+      allPatients  = lsGet(PATIENTS_STORAGE_KEY, {});
+      closedDays   = lsGet(CLOSED_DAYS_KEY, []);
+      const savedSettings = lsGet(SETTINGS_KEY, null);
+      if (savedSettings) { settings = savedSettings; applySettings(); }
+
+      // تحويل تلقائي: Accepted وتاريخه انتهى → NoShow
+      let changed = false;
+      allRecords.forEach(r => {
+        if (r.Status === 'Accepted' && r.id) {
+          const d = parseLocalISODate(normalizeDate(r.Date));
+          if (d < today) { r.Status = 'NoShow'; changed = true; }
+        }
+      });
+      if (changed) {
+        lsSet(STORAGE_KEY, allRecords);
+      }
+
+      updateCounts(); calculateDensity(); renderCalendar();
+      if (selectedDayStr) renderAgendaForDay(selectedDayStr);
+      if (currentSection === 'appointments') renderBothAppointmentColumns();
+      document.getElementById('totalPatientsCount').textContent = Object.keys(allPatients).length;
+
+      // الاستماع لتغييرات من التاب الآخر (ملف الدكتور)
+      window.addEventListener('storage', function(e) {
+        if (e.key === STORAGE_KEY) {
+          allRecords = lsGet(STORAGE_KEY, []);
           updateCounts(); calculateDensity(); renderCalendar();
           if (selectedDayStr) renderAgendaForDay(selectedDayStr);
           if (currentSection === 'appointments') renderBothAppointmentColumns();
-        },
-        function(e) { console.error('appointments error', e); }
-      );
-
-      // ── المرضى ──
-      if (_unsubPatients) _unsubPatients();
-      _unsubPatients = window._fb.onSnapshot(
-        window._fb.col('patients'),
-        function(snap) {
-          allPatients = {};
-          snap.docs.forEach(function(d) { allPatients[d.id] = Object.assign({ id: d.id }, d.data()); });
+        }
+        if (e.key === PATIENTS_STORAGE_KEY) {
+          allPatients = lsGet(PATIENTS_STORAGE_KEY, {});
           document.getElementById('totalPatientsCount').textContent = Object.keys(allPatients).length;
           if (currentSection === 'patients') renderPatientBook();
-        },
-        function(e) { console.error('patients error', e); }
-      );
-
-      // ── الأيام المغلقة ──
-      if (_unsubClosedDays) _unsubClosedDays();
-      _unsubClosedDays = window._fb.onSnapshot(
-        window._fb.docRef('config', 'closedDays'),
-        function(snap) {
-          closedDays = snap.exists() ? (snap.data().list || []) : [];
+        }
+        if (e.key === CLOSED_DAYS_KEY) {
+          closedDays = lsGet(CLOSED_DAYS_KEY, []);
           renderCalendar();
           if (selectedDayStr) updateDayStatusBadge(selectedDayStr);
-        },
-        function(e) { console.error('closedDays error', e); }
-      );
-
-      // ── تنبيهات الطبيب للممرضة ──
-      if (_unsubNurseAlerts) _unsubNurseAlerts();
-      var _lastAlertSeenAt = Date.now();
-      _unsubNurseAlerts = window._fb.onSnapshot(
-        window._fb.query(window._fb.col('alerts'), window._fb.orderBy('createdAt', 'desc')),
-        function(snap) {
-          snap.docChanges().forEach(function(change) {
-            if (change.type === 'added') {
-              var d = change.doc.data();
-              var ts = d.createdAt ? d.createdAt.toMillis() : 0;
-              if (ts > _lastAlertSeenAt && d.direction === 'doctorToNurse' && !d.read) {
-                showDoctorAlert({ type: d.type, message: d.message });
-                window._fb.updateDoc(change.doc.ref, { read: true });
-              }
-            }
-          });
         }
-      );
+        if (e.key === NOTES_KEY) {
+          if (document.getElementById('notesOverlay')?.style.display === 'flex') window.renderNotes();
+        }
+        // مزامنة الإعدادات من لوحة الطبيب
+        if (e.key === SETTINGS_KEY) {
+          const savedSettings = lsGet(SETTINGS_KEY, null);
+          if (savedSettings) { settings = savedSettings; applySettings(); }
+        }
+      });
 
-      // ── الإعدادات ──
-      window._fb.getDoc('settings', 'nurse').then(function(snap) {
-        if (snap.exists()) { settings = snap.data(); applySettings(); }
-      }).catch(function(){});
-
-      // ── حجز جديد من صفحة المريض (BroadcastChannel كـ fallback) ──
+      // ─── BroadcastChannel: استقبال إشعارات حجز جديد من صفحة المريض ───
       try {
         const _clinicBC = new BroadcastChannel('clinicSync');
         _clinicBC.onmessage = function(ev) {
-          if (ev.data?.key === 'appointments') showNotifToast('طلب جديد');
+          if (ev.data?.key === STORAGE_KEY) {
+            allRecords = lsGet(STORAGE_KEY, []);
+            updateCounts(); calculateDensity(); renderCalendar();
+            if (selectedDayStr) renderAgendaForDay(selectedDayStr);
+            if (currentSection === 'appointments') renderBothAppointmentColumns();
+            showNotifToast('طلب جديد');
+          }
         };
       } catch(e) {}
     }
 
     function saveAppointment(appointment) {
-      appointment.id = appointment.id || ('appt_' + Date.now() + '_' + Math.random().toString(36).substr(2,6));
-      const ref = window._fb.docRef('appointments', appointment.id);
-      window._fb.setDoc(ref, Object.assign({}, appointment, { createdAt: window._fb.serverTimestamp() }))
-        .then(function() {
-          showToast('تم الحفظ بنجاح','success');
-          // onSnapshot يُحدّث allRecords تلقائياً
-        })
-        .catch(function(e) { showToast('فشل الحفظ','error'); console.error(e); });
+      const records = lsGet(STORAGE_KEY, []);
+      appointment.id = 'appt_' + Date.now() + '_' + Math.random().toString(36).substr(2,6);
+      records.push(appointment);
+      lsSet(STORAGE_KEY, records);
+      notifyOtherTab(STORAGE_KEY);
+      allRecords = records;
+      showToast('تم الحفظ بنجاح','success');
+      updateCounts(); calculateDensity(); renderCalendar();
+      if (selectedDayStr) renderAgendaForDay(selectedDayStr);
+      if (currentSection === 'appointments') renderBothAppointmentColumns();
     }
-
     function updateAppointmentStatus(id, status) {
-      const record = allRecords.find(r => r.id === id);
-      if (!record) return;
-      const ref = window._fb.docRef('appointments', id);
-      window._fb.updateDoc(ref, { Status: status, updatedAt: window._fb.serverTimestamp() })
-        .then(function() {
-          showToast('تم تحديث الحالة','success', true);
-          if (status === 'Accepted') {
-            sendWhatsAppConfirmation(record.Phone, record.PatientName, record.Date, record.Slot, record.VisitType);
-            // إشعار الطبيب عبر Firestore alerts
-            window._fb.addDoc(window._fb.col('alerts'), {
-              type:      'accepted',
-              direction: 'nurseToDoctor',
-              message:   'تم قبول موعد',
-              read:      false,
-              createdAt: window._fb.serverTimestamp()
-            }).catch(function(){});
-          } else if (status === 'Rejected') {
-            sendWhatsAppRejection(record.Phone, record.PatientName, record.Date, record._rejectAltSlots || []);
-          } else if (status === 'Cancelled') {
-            sendWhatsAppCancellation(record.Phone, record.PatientName, record.Date);
-          }
-        })
-        .catch(function(e) { showToast('فشل التحديث','error'); console.error(e); });
+      const records = lsGet(STORAGE_KEY, []);
+      const record = records.find(r=>r.id===id);
+      if (record) {
+        record.Status = status;
+        lsSet(STORAGE_KEY, records);
+        notifyOtherTab(STORAGE_KEY);
+        allRecords = records;
+        showToast('تم تحديث الحالة','success', true);
+        if (status==='Accepted') {
+          sendWhatsAppConfirmation(record.Phone,record.PatientName,record.Date,record.Slot,record.VisitType);
+          // إشعار الطبيب بقبول الموعد
+          try { new BroadcastChannel('nurseAccepted').postMessage({ type:'accepted', ts: Date.now(), name: record.PatientName }); } catch(e) {}
+          try { localStorage.setItem('nurseAcceptedNotif', JSON.stringify({ type:'accepted', ts: Date.now(), name: record.PatientName })); } catch(e) {}
+        }
+        else if (status==='Rejected') sendWhatsAppRejection(record.Phone,record.PatientName,record.Date, record._rejectAltSlots||[]);
+        else if (status==='Cancelled') sendWhatsAppCancellation(record.Phone,record.PatientName,record.Date);
+        updateCounts(); calculateDensity(); renderCalendar();
+        if (selectedDayStr) renderAgendaForDay(selectedDayStr);
+        if (currentSection === 'appointments') renderBothAppointmentColumns();
+      }
     }
-
     function deleteAppointment(id) {
-      window._fb.deleteDoc(window._fb.docRef('appointments', id))
-        .then(function() { showToast('تم إلغاء الموعد','success'); })
-        .catch(function(e) { console.error(e); });
+      const records = lsGet(STORAGE_KEY, []);
+      const record = records.find(r=>r.id===id);
+      showToast('تم إلغاء الموعد','success');
+      if (selectedDayStr) renderAgendaForDay(selectedDayStr);
     }
-
     function savePatient(patient) {
-      const patientId = patient.id || ('p_' + Date.now() + '_' + Math.random().toString(36).substr(2,6));
+      const patients = lsGet(PATIENTS_STORAGE_KEY, {});
+      const patientId = patient.id || ('p_'+Date.now()+'_'+Math.random().toString(36).substr(2,6));
       patient.id = patientId;
-      const ref = window._fb.docRef('patients', patientId);
-      window._fb.setDoc(ref, patient)
-        .then(function() {
-          showToast('تمت إضافة المريض','success');
-          document.getElementById('patientBookModal').classList.add('hidden');
-        })
-        .catch(function(e) { showToast('فشل الحفظ','error'); console.error(e); });
+      patients[patientId] = patient;
+      lsSet(PATIENTS_STORAGE_KEY, patients);
+      notifyOtherTab(PATIENTS_STORAGE_KEY);
+      allPatients = patients;
+      showToast('تمت إضافة المريض','success');
+      document.getElementById('patientBookModal').classList.add('hidden');
+      document.getElementById('totalPatientsCount').textContent = Object.keys(allPatients).length;
     }
-
     function updatePatient(patientId, updatedData) {
-      const ref = window._fb.docRef('patients', patientId);
-      window._fb.updateDoc(ref, updatedData)
-        .then(function() { showToast('تم التحديث','success'); })
-        .catch(function(e) { console.error(e); });
+      const patients = lsGet(PATIENTS_STORAGE_KEY, {});
+      showToast('تم التحديث','success');
     }
-
     function deletePatient(id) {
       appConfirm('هل تريد حذف بيانات هذا المريض نهائياً؟', 'حذف').then(ok => {
-        if (!ok) return;
-        window._fb.deleteDoc(window._fb.docRef('patients', id))
-          .then(function() {
-            showToast('تم الحذف','success');
-            if (currentSection === 'patients') renderPatientBook();
-          })
-          .catch(function(e) { showToast('فشل الحذف','error'); console.error(e); });
+        if(!ok) return;
+        const patients = lsGet(PATIENTS_STORAGE_KEY, {});
+        delete patients[id];
+        lsSet(PATIENTS_STORAGE_KEY, patients);
+        notifyOtherTab(PATIENTS_STORAGE_KEY);
+        allPatients = patients;
+        showToast('تم الحذف','success');
+        document.getElementById('totalPatientsCount').textContent = Object.keys(allPatients).length;
+        if (currentSection === 'patients') renderPatientBook();
       });
     }
-
     function toggleDayClosed(dateStr, close) {
-      const ref = window._fb.docRef('config', 'closedDays');
-      const current = closedDays ? [...closedDays] : [];
-      let updated;
-      if (close) {
-        updated = current.includes(dateStr) ? current : [...current, dateStr];
-      } else {
-        updated = current.filter(d => d !== dateStr);
-      }
-      window._fb.setDoc(ref, { list: updated })
-        .then(function() {
-          closedDays = updated;
-          try { new BroadcastChannel('clinicSync').postMessage({ key: 'closedDays', list: updated }); } catch(e) {}
-          renderCalendar();
-          if (selectedDayStr) updateDayStatusBadge(selectedDayStr);
-        })
-        .catch(function(e) { console.error(e); });
+      const list = lsGet(CLOSED_DAYS_KEY, []);
+      if (close) { if (!list.includes(dateStr)) list.push(dateStr); }
+      else { const i=list.indexOf(dateStr); if(i>-1) list.splice(i,1); }
+      lsSet(CLOSED_DAYS_KEY, list);
+      notifyOtherTab(CLOSED_DAYS_KEY);
+      // إشعار فوري لصفحة الحجز عبر BroadcastChannel
+      try { new BroadcastChannel('clinicSync').postMessage({ key: CLOSED_DAYS_KEY }); } catch(e) {}
+      closedDays = list;
+      renderCalendar();
+      if (selectedDayStr) updateDayStatusBadge(selectedDayStr);
     }
-
     function saveSettingsToFirebase(newSettings) {
-      window._fb.setDoc(window._fb.docRef('settings', 'nurse'), newSettings)
-        .then(function() { showToast('تم حفظ الإعدادات','success'); })
-        .catch(function(e) { showToast('فشل حفظ الإعدادات','error'); console.error(e); });
+      lsSet(SETTINGS_KEY, newSettings);
+      showToast('تم حفظ الإعدادات','success');
     }
 
     // ================== WhatsApp + SMS Fallback ==================
@@ -5435,25 +5355,24 @@
 
   <!-- ========== NOTES JAVASCRIPT ========== -->
   <script>
-  // جلب الملاحظات من Firestore
+  // جلب الملاحظات من localStorage
   window.loadNotesData = function(callback) {
-    window._fb.getDoc('config', 'notes').then(function(snap) {
-      var notes = snap.exists() ? (snap.data().list || []) : [];
+    try {
+      const notes = lsGet(NOTES_KEY, []);
       callback(Array.isArray(notes) ? notes : []);
-    }).catch(function() { callback([]); });
+    } catch(e) { callback([]); }
   }
 
-  // حفظ الملاحظات في Firestore
+  // حفظ الملاحظات في localStorage
   window.saveNotesData = function(notes, callback) {
-    window._fb.setDoc(window._fb.docRef('config', 'notes'), { list: notes })
-      .then(function() {
-        if (callback) callback();
-        showToast('تم حفظ الملاحظة بنجاح', 'success');
-      })
-      .catch(function(e) {
-        showToast('فشل حفظ الملاحظة', 'error');
-        console.error(e);
-      });
+    try {
+      lsSet(NOTES_KEY, notes);
+      notifyOtherTab(NOTES_KEY);
+      if (callback) callback();
+      showToast('تم حفظ الملاحظة بنجاح', 'success');
+    } catch(e) {
+      showToast('فشل حفظ الملاحظة', 'error');
+    }
   }
 
   window.openNotesOverlay = function() {
@@ -5631,89 +5550,197 @@
 
 
   <script>
-    // ── Audio system للتنبيهات (keepalive) ──
-    var _audioCtx = null;
-    function getAudioCtx() {
-      if (!_audioCtx || _audioCtx.state === 'closed') {
-        try { _audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { return null; }
+  // تسجيل الخروج المحلي
+    // ═══════════════════════════════════════════════════════
+    //   تحديث تلقائي — BroadcastChannel + storage event
+    // ═══════════════════════════════════════════════════════
+    (function() {
+      var SYNC_KEYS = ['doctorAppointments', 'closedDays', 'nurseAlert'];
+      var bc, bcNurse;
+      try { bc = new BroadcastChannel('docbook_sync'); } catch(e) {}
+      try { bcNurse = new BroadcastChannel('nurseAlerts'); } catch(e) {}
+
+      // ── عرض تنبيه الدكتور ──
+      var _alertTimer = null;
+      var _alertSoundTimer = null;
+      var _lastAlertTs = 0;
+      var DISMISSED_KEY = 'nurseAlertDismissed';
+
+      function getDismissedTs() {
+        return parseInt(localStorage.getItem(DISMISSED_KEY) || '0', 10);
       }
-      return _audioCtx;
-    }
-    function primeAudio() {
-      var ctx = getAudioCtx();
-      if (ctx && ctx.state === 'suspended') ctx.resume();
-      document.removeEventListener('click',      primeAudio);
-      document.removeEventListener('touchstart', primeAudio);
-      document.removeEventListener('keydown',    primeAudio);
-    }
-    document.addEventListener('click',      primeAudio);
-    document.addEventListener('touchstart', primeAudio);
-    document.addEventListener('keydown',    primeAudio);
-    setInterval(function() {
-      var ctx = getAudioCtx();
-      if (ctx && ctx.state === 'running') {
-        try { var o = ctx.createOscillator(), g = ctx.createGain(); g.gain.value = 0; o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime + 0.001); } catch(e) {}
+
+      var _audioCtx = null;
+      function getAudioCtx() {
+        if (!_audioCtx || _audioCtx.state === 'closed') {
+          try { _audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { return null; }
+        }
+        return _audioCtx;
       }
-    }, 30000);
 
-    function playAlertSound() {
-      var ctx = getAudioCtx(); if (!ctx) return;
-      function doPlay() {
-        try {
-          [0, 0.2, 0.4].forEach(function(t) {
-            var o = ctx.createOscillator(), g = ctx.createGain();
-            o.connect(g); g.connect(ctx.destination);
-            o.type = 'sine'; o.frequency.value = 880;
-            g.gain.setValueAtTime(0.35, ctx.currentTime + t);
-            g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.22);
-            o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.22);
-          });
-        } catch(e) {}
+      // استعداد مبكر — نفتح AudioContext عند أول تفاعل للمستخدم
+      function primeAudio() {
+        var ctx = getAudioCtx();
+        if (ctx && ctx.state === 'suspended') ctx.resume();
+        document.removeEventListener('click', primeAudio);
+        document.removeEventListener('touchstart', primeAudio);
+        document.removeEventListener('keydown', primeAudio);
       }
-      if (ctx.state === 'suspended') ctx.resume().then(doPlay); else doPlay();
-    }
+      document.addEventListener('click', primeAudio);
+      document.addEventListener('touchstart', primeAudio);
+      document.addEventListener('keydown', primeAudio);
 
-    // ── عرض تنبيه الدكتور (doctorToNurse) ──
-    var _alertTimer = null, _alertSoundTimer = null, _lastAlertTs = 0;
+      function playAlertSound() {
+        var ctx = getAudioCtx();
+        if (!ctx) return;
+        function doPlay() {
+          try {
+            [0, 0.2, 0.4].forEach(function(t) {
+              var o = ctx.createOscillator(), g = ctx.createGain();
+              o.connect(g); g.connect(ctx.destination);
+              o.type = 'sine'; o.frequency.value = 880;
+              g.gain.setValueAtTime(0.4, ctx.currentTime + t);
+              g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.25);
+              o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.25);
+            });
+          } catch(e) {}
+        }
+        if (ctx.state === 'suspended') {
+          ctx.resume().then(doPlay).catch(function() {});
+        } else {
+          doPlay();
+        }
+      }
 
-    window.showDoctorAlert = function(payload) {
-      _lastAlertTs = payload.ts || Date.now();
-      var banner = document.getElementById('doctorAlertBanner');
-      var inner  = document.getElementById('alertBannerInner');
-      var title  = document.getElementById('alertBannerTitle');
-      var sub    = document.getElementById('alertBannerSub');
-      if (!banner) return;
-      if (inner)  inner.className = 'alert-banner-inner type-' + (payload.type || 'enter');
-      if (title)  title.textContent = payload.message || 'تنبيه من الدكتور';
-      banner.classList.add('show');
-      clearTimeout(_alertTimer);
-      clearInterval(_alertSoundTimer);
-      playAlertSound();
-      _alertSoundTimer = setInterval(playAlertSound, 5000);
-      _alertTimer = setTimeout(function() { window.closeDoctorAlert(); }, 30000);
-    };
+      window.showDoctorAlert = function(payload) {
+        var alertMap = {
+          next:   { title: 'أدخل المريض',      sub: 'تنبيه من الدكتور', cls: 'type-next'   },
+          enter:  { title: 'استدعاء الممرضة',  sub: 'تنبيه من الدكتور', cls: 'type-enter'  },
+          custom: null
+        };
+        var title, sub, cls;
+        if (payload.type === 'custom') {
+          try {
+            var cd = JSON.parse(localStorage.getItem('nurseCustomAlert') || 'null');
+            title = (cd && cd.label) ? cd.label : 'تنبيه مخصص';
+            sub   = (cd && cd.desc)  ? cd.desc  : 'تنبيه من الدكتور';
+          } catch(e) { title = 'تنبيه مخصص'; sub = 'تنبيه من الدكتور'; }
+          cls = 'type-custom';
+        } else {
+          var m = alertMap[payload.type] || alertMap.next;
+          title = m.title; sub = m.sub; cls = m.cls;
+        }
+        var banner = document.getElementById('doctorAlertBanner');
+        var inner  = document.getElementById('alertBannerInner');
+        document.getElementById('alertBannerTitle').textContent = title;
+        document.getElementById('alertBannerSub').textContent   = sub;
+        if (inner)  { inner.className = 'alert-banner-inner ' + cls; }
+        if (banner) banner.classList.add('show');
 
-    window.closeDoctorAlert = function() {
-      var banner = document.getElementById('doctorAlertBanner');
-      if (banner) banner.classList.remove('show');
-      clearTimeout(_alertTimer);
-      clearInterval(_alertSoundTimer);
-    };
+        // mark timestamp so polling doesn't re-trigger after dismiss
+        _lastAlertTs = payload.ts || Date.now();
+
+        // صوت فوري + تكرار كل 5 ثوان
+        playAlertSound();
+        clearInterval(_alertSoundTimer);
+        _alertSoundTimer = setInterval(playAlertSound, 5000);
+
+        // إغلاق تلقائي بعد 30 ثانية
+        clearTimeout(_alertTimer);
+        _alertTimer = setTimeout(function() { window.closeDoctorAlert(); }, 30000);
+      };
+
+      window.closeDoctorAlert = function() {
+        var banner = document.getElementById('doctorAlertBanner');
+        if (banner) banner.classList.remove('show');
+        clearTimeout(_alertTimer);
+        clearInterval(_alertSoundTimer);
+        // persist dismissed ts so page refresh doesn't re-trigger
+        if (_lastAlertTs) localStorage.setItem(DISMISSED_KEY, String(_lastAlertTs));
+      };
+
+      function handleChange(key) {
+        if (!key) return;
+        if (key === 'nurseAlert') {
+          try {
+            var raw = localStorage.getItem('nurseAlert');
+            if (!raw) return;
+            var payload = JSON.parse(raw);
+            if (!payload || !payload.type) return;
+            var ts = payload.ts || 0;
+            if (ts === _lastAlertTs) return;
+            if (ts <= getDismissedTs()) return;
+            if (Date.now() - ts > 60000) return;
+            window.showDoctorAlert(payload);
+          } catch(e) {}
+          return;
+        }
+        if (key === 'doctorAppointments') {
+          try {
+            var raw = localStorage.getItem('doctorAppointments');
+            if (!raw) return;
+            var recs = JSON.parse(raw);
+            if (!Array.isArray(recs)) return;
+            allRecords = recs;
+            if (typeof updateCounts === 'function')             updateCounts();
+            if (typeof calculateDensity === 'function')         calculateDensity();
+            if (typeof renderCalendar === 'function')           renderCalendar();
+            if (typeof renderDoctorCalendar === 'function')     renderDoctorCalendar();
+            if (typeof renderBothAppointmentColumns === 'function') renderBothAppointmentColumns();
+            if (typeof selectedDayStr !== 'undefined' && selectedDayStr && typeof renderAgendaForDay === 'function')
+              renderAgendaForDay(selectedDayStr);
+          } catch(e) {}
+        }
+        if (key === 'closedDays') {
+          try {
+            var cd = JSON.parse(localStorage.getItem('closedDays') || '[]');
+            if (typeof closedDays !== 'undefined') closedDays = cd;
+            if (typeof renderCalendar === 'function')       renderCalendar();
+            if (typeof renderDoctorCalendar === 'function') renderDoctorCalendar();
+          } catch(e) {}
+        }
+      }
+
+      // storage event (تبويبات مختلفة)
+      window.addEventListener('storage', function(e) {
+        if (SYNC_KEYS.includes(e.key)) handleChange(e.key);
+      });
+
+      // BroadcastChannel docbook_sync
+      if (bc) bc.onmessage = function(e) {
+        if (e.data && e.data.key) handleChange(e.data.key);
+      };
+
+      // BroadcastChannel nurseAlerts (الدكتور يُرسل عبر هذا)
+      if (bcNurse) bcNurse.onmessage = function(e) {
+        if (e.data && e.data.type) {
+          var ts = e.data.ts || 0;
+          if (ts > getDismissedTs() && ts !== _lastAlertTs) window.showDoctorAlert(e.data);
+        }
+      };
+
+      // polling خفيف كل 4 ثوان fallback
+      var _snapshots = {};
+      setInterval(function() {
+        SYNC_KEYS.forEach(function(k) {
+          var v = localStorage.getItem(k);
+          if (v !== _snapshots[k]) {
+            _snapshots[k] = v;
+            handleChange(k);
+          }
+        });
+      }, 4000);
+    })();
 
   window.docbookSignOut = function() {
     appConfirm('هل تريد تسجيل الخروج؟', 'تسجيل الخروج').then(ok => {
       if (!ok) return;
-      if (typeof _unsubAppointments === 'function') _unsubAppointments();
-      if (typeof _unsubPatients     === 'function') _unsubPatients();
-      if (typeof _unsubClosedDays   === 'function') _unsubClosedDays();
-      if (typeof _unsubNurseAlerts  === 'function') _unsubNurseAlerts();
-      window._fb.signOut().then(function() {
-        var ov = document.getElementById('loginOverlay');
-        ov.style.display = 'flex'; ov.style.opacity = '0';
-        setTimeout(function(){ ov.style.opacity = '1'; ov.style.transition = 'opacity .3s'; }, 50);
-        var lu = document.getElementById('loginUser'); if(lu) lu.value = '';
-        var lp = document.getElementById('loginPassword'); if(lp) lp.value = '';
-      });
+      localStorage.removeItem('docbookNurseSession');
+      var ov = document.getElementById('loginOverlay');
+      ov.style.display = 'flex'; ov.style.opacity = '0';
+      setTimeout(function(){ ov.style.opacity = '1'; ov.style.transition = 'opacity .3s'; }, 50);
+      var lu = document.getElementById('loginUser'); if(lu) lu.value = '';
+      var lp = document.getElementById('loginPassword'); if(lp) lp.value = '';
     });
   };
 
