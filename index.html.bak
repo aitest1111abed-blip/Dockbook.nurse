@@ -1953,6 +1953,37 @@
   <link rel="apple-touch-icon" sizes="192x192" href="./icon-192.png"/>
   <link rel="manifest" href="./manifest.json"/>
   <script>if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(function(){});</script>
+
+  <!-- OneSignal -->
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.init({
+        appId: "5abd2003-e1ef-4cec-866c-248959b6dacb",
+        allowLocalhostAsSecureOrigin: true,
+        notifyButton: { enable: false },
+      });
+    });
+
+    // دالة لإرسال إشعار عبر OneSignal REST API
+    window.sendOSNotification = function(apiKey, heading, content, targetAppId) {
+      fetch('https://onesignal.com/api/v1/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Key ' + apiKey,
+        },
+        body: JSON.stringify({
+          app_id: targetAppId,
+          included_segments: ['Total Subscriptions'],
+          headings: { ar: heading, en: heading },
+          contents:  { ar: content,  en: content },
+        })
+      }).catch(function(e) { console.error('[OneSignal]', e); });
+    };
+  </script>
+
   <!-- ═══════ Firebase SDK ═══════ -->
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
@@ -2061,10 +2092,18 @@
 
     var _authResolved = false;
     var _checkingRole  = false;
+    var _SESSION_KEY   = 'docbook_nur_auth';
 
     function initAuthWatch() {
+      var ov = document.getElementById('loginOverlay');
+
+      // إذا كانت الجلسة محفوظة → أخفِ شاشة الدخول فوراً
+      if (sessionStorage.getItem(_SESSION_KEY) === '1') {
+        ov.style.display = 'none';
+        _authResolved = true;
+      }
+
       window._fb.onAuth(function(user) {
-        var ov = document.getElementById('loginOverlay');
         if (user) {
           _checkingRole = true;
           window._fb.getDoc('users', user.uid).then(function(snap) {
@@ -2072,6 +2111,7 @@
             var role = snap.exists() ? snap.data().role : null;
             if (role !== 'nurse') {
               _authResolved = false;
+              sessionStorage.removeItem(_SESSION_KEY);
               window._fb.signOut();
               ov.style.display = 'flex'; ov.style.opacity = '1';
               var errEl = document.getElementById('loginError');
@@ -2079,6 +2119,7 @@
               return;
             }
             _authResolved = true;
+            sessionStorage.setItem(_SESSION_KEY, '1');
             ov.style.transition = 'opacity .3s'; ov.style.opacity = '0';
             setTimeout(function(){ ov.style.display = 'none'; }, 300);
             if (typeof initializeData === 'function') initializeData();
@@ -2088,6 +2129,7 @@
           });
         } else {
           if (_checkingRole || _authResolved) return;
+          sessionStorage.removeItem(_SESSION_KEY);
           ov.style.display = 'flex'; ov.style.opacity = '1';
         }
       });
@@ -3447,9 +3489,29 @@
       try {
         const _clinicBC = new BroadcastChannel('clinicSync');
         _clinicBC.onmessage = function(ev) {
-          if (ev.data?.key === 'appointments') showNotifToast('طلب جديد');
+          if (ev.data?.key === 'appointments') {
+            showNotifToast('طلب جديد');
+            // OneSignal إشعار للممرضة
+            window.sendOSNotification(
+              'os_v2_app_lk6saa7b55gozbtmesevtnw2zooo3lshuvvep6m7q4qbngagvzdyzjdgumixjtshz6pagbqjjqm2yhdudz27dlf4f2w5ozcruhrpnsq',
+              'طلب حجز جديد',
+              'وصل طلب حجز جديد من مريض',
+              '5abd2003-e1ef-4cec-866c-248959b6dacb'
+            );
+          }
         };
       } catch(e) {}
+      
+      // مراقبة appointments في Firestore لاكتشاف حجوزات جديدة
+      var _lastApptCount = allRecords.length;
+      window._fb.onSnapshot(window._fb.col('appointments'), function(snap) {
+        var newCount = snap.docs.length;
+        var added = snap.docChanges().filter(c => c.type === 'added' && c.doc.data().Status === 'Pending');
+        if (added.length && newCount > _lastApptCount) {
+          showNotifToast('طلب جديد');
+        }
+        _lastApptCount = newCount;
+      });
     }
 
     function saveAppointment(appointment) {
@@ -3484,6 +3546,13 @@
               message: 'تم قبول موعد', read: false,
               createdAt: window._fb.serverTimestamp()
             }).catch(function(){});
+            // إشعار فوري عبر OneSignal للطبيب
+            window.sendOSNotification(
+              'os_v2_app_xyjohccl25hkfmyp5yrfbi5ex47b5mdbdsmesnfmkyn7fpjethppgji37djiq2niyr2d44oyk67yua3kwhvh6jtodt4jqwv57mw7kaq',
+              'تم قبول موعد',
+              'قبلت الممرضة موعداً بنجاح',
+              'be12e388-4bd7-4ea2-b30f-ee2250a3a4bf'
+            );
           } else if (status === 'Rejected') {
             sendWhatsAppRejection(record.Phone, record.PatientName, record.Date, record._rejectAltSlots || []);
           } else if (status === 'Cancelled') {
@@ -5730,6 +5799,7 @@
       if (typeof _unsubClosed      === 'function') _unsubClosed();
       if (typeof _unsubNurseAlerts === 'function') _unsubNurseAlerts();
       window._fb.signOut().then(function() {
+        sessionStorage.removeItem('docbook_nur_auth');
         var ov = document.getElementById('loginOverlay');
         ov.style.display = 'flex'; ov.style.opacity = '0';
         setTimeout(function(){ ov.style.opacity = '1'; ov.style.transition = 'opacity .3s'; }, 50);
