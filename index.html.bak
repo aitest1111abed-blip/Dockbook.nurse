@@ -2114,28 +2114,41 @@
 
       window._fb.onAuth(function(user) {
         if (user) {
-          _checkingRole = true;
-          window._fb.getDoc('users', user.uid).then(function(snap) {
-            _checkingRole = false;
-            var role = snap.exists() ? snap.data().role : null;
-            if (role !== 'nurse') {
-              _authResolved = false;
-              _clearSession();
-              window._fb.signOut();
-              ov.style.display = 'flex'; ov.style.opacity = '1';
-              var errEl = document.getElementById('loginError');
-              if (errEl) { errEl.style.display='block'; errEl.textContent='هذا الحساب غير مصرح له بالدخول هنا'; }
-              return;
-            }
+          // إذا الجلسة محفوظة → افتح مباشرةً بدون انتظار role check
+          if (_hasSession() && !_authResolved) {
             _authResolved = true;
-            _saveSession();
-            ov.style.transition = 'opacity .3s'; ov.style.opacity = '0';
-            setTimeout(function(){ ov.style.display = 'none'; }, 300);
+            ov.style.display = 'none';
             if (typeof initializeData === 'function') initializeData();
-          }).catch(function(e) {
-            _checkingRole = false;
-            console.error('[Auth role check]', e);
-          });
+          }
+          // تحقق من الدور في الخلفية
+          if (!_checkingRole) {
+            _checkingRole = true;
+            window._fb.getDoc('users', user.uid).then(function(snap) {
+              _checkingRole = false;
+              var role = snap.exists() ? snap.data().role : null;
+              if (role !== 'nurse') {
+                _authResolved = false;
+                _clearSession();
+                window._fb.signOut();
+                ov.style.display = 'flex'; ov.style.opacity = '1';
+                var errEl = document.getElementById('loginError');
+                if (errEl) { errEl.style.display='block'; errEl.textContent='هذا الحساب غير مصرح له بالدخول هنا'; }
+                return;
+              }
+              if (!_authResolved) {
+                _authResolved = true;
+                _saveSession();
+                ov.style.transition = 'opacity .3s'; ov.style.opacity = '0';
+                setTimeout(function(){ ov.style.display = 'none'; }, 300);
+                if (typeof initializeData === 'function') initializeData();
+              } else {
+                _saveSession(); // تجديد الجلسة
+              }
+            }).catch(function(e) {
+              _checkingRole = false;
+              console.error('[Auth role check]', e);
+            });
+          }
         } else {
           if (_checkingRole || _authResolved || _hasSession()) return;
           _clearSession();
