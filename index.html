@@ -2062,9 +2062,6 @@
 
     var _dataLoaded = false;
 
-    }
-    var _dataLoaded = false;
-
     function initAuthWatch() {
       var ov = document.getElementById('loginOverlay');
 
@@ -2542,16 +2539,19 @@
 
   <!-- BOTTOM NAV -->
   <nav class="bottom-nav">
-    <div class="bottom-nav-item" id="mobileAppointments" onclick="toggleApptSubNav()" style="position:relative;">
-      <i class="fas fa-calendar-check"></i><span>المواعيد</span>
-    </div>
     <!-- Hidden spans for JS count compatibility -->
     <span id="pendingTabCount" style="display:none;">0</span>
     <span id="acceptedTabCount" style="display:none;">0</span>
     <span id="mobSubBadgePending" style="display:none;">0</span>
     <span id="mobSubBadgeAccepted" style="display:none;">0</span>
+    <div class="bottom-nav-item" id="mobileCalendar">
+      <i class="fas fa-calendar-alt"></i><span>الروزنامة</span>
+    </div>
     <div class="bottom-nav-item" id="mobilePatients">
       <i class="fas fa-address-book"></i><span>المرضى</span>
+    </div>
+    <div class="bottom-nav-item" id="mobileAppointments" onclick="toggleApptSubNav()" style="position:relative;">
+      <i class="fas fa-calendar-check"></i><span>المواعيد</span>
     </div>
     <div class="mob-fab-container">
       <!-- Pills تظهر فوق الزر -->
@@ -2573,9 +2573,6 @@
       <button class="fab-trigger" id="mobFabTrigger" onclick="toggleMobFab()" aria-label="قائمة سريعة">
         <div class="fab-plus-icon"></div>
       </button>
-    </div>
-    <div class="bottom-nav-item" id="mobileCalendar">
-      <i class="fas fa-calendar-alt"></i><span>الروزنامة</span>
     </div>
 
   </nav>
@@ -3389,6 +3386,22 @@
 
     var _unsubAppt = null, _unsubPat = null, _unsubClosed = null, _unsubNurseAlerts = null;
     var _alertSeenAt = 0;
+    var _nurseFirstLoad = false;
+
+    // ── فحص الطلبات الجديدة الفائتة عند فتح اللوحة ──
+    function checkMissedAppointments() {
+      var lastSeen = parseInt(localStorage.getItem('nurseLastSeen') || '0', 10);
+      var pending = allRecords.filter(function(r) {
+        if (r.Status !== 'Pending') return false;
+        var ts = r.createdAt ? new Date(r.createdAt).getTime() : 0;
+        return ts > lastSeen;
+      });
+      if (pending.length > 0) {
+        var msg = pending.length === 1 ? 'طلب جديد فائت' : pending.length + ' طلبات جديدة فائتة';
+        showNotifToast(msg);
+      }
+      localStorage.setItem('nurseLastSeen', String(Date.now()));
+    }
 
     function initializeData() {
       migrateLocalStorageToFirestore();
@@ -3421,6 +3434,8 @@
           updateCounts(); calculateDensity(); renderCalendar();
           if (selectedDayStr) renderAgendaForDay(selectedDayStr);
           if (currentSection === 'appointments') renderBothAppointmentColumns();
+          // فحص الطلبات الفائتة عند أول تحميل
+          if (!_nurseFirstLoad) { _nurseFirstLoad = true; setTimeout(checkMissedAppointments, 1500); }
         },
         function(e) { console.error('[appointments]', e); }
       );
