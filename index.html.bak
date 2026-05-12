@@ -2092,7 +2092,7 @@
     document.getElementById('loginPassword').addEventListener('keydown', function(e){ if(e.key==='Enter') doLocalLogin(); });
     document.getElementById('loginUser').addEventListener('keydown', function(e){ if(e.key==='Enter') doLocalLogin(); });
 
-    var
+    var _dataLoaded = false;
 
     // طلب إذن الإشعارات بعد تسجيل الدخول
     function requestPushPermission() {
@@ -3195,6 +3195,29 @@
       clearTimeout(el._timer);
       el._timer = setTimeout(() => el.classList.remove('show'), 8000);
     }
+
+    // ── عرض تنبيه الدكتور ──
+    var _alertTimer = null, _alertSoundTimer = null;
+    window.showDoctorAlert = function(payload) {
+      var banner = document.getElementById('doctorAlertBanner');
+      var inner  = document.getElementById('alertBannerInner');
+      var title  = document.getElementById('alertBannerTitle');
+      if (!banner) return;
+      if (inner) inner.className = 'alert-banner-inner type-' + (payload.type || 'enter');
+      if (title) title.textContent = payload.message || 'تنبيه من الدكتور';
+      banner.classList.add('show');
+      clearTimeout(_alertTimer);
+      clearInterval(_alertSoundTimer);
+      playNotifSound();
+      _alertSoundTimer = setInterval(playNotifSound, 5000);
+      _alertTimer = setTimeout(function() { window.closeDoctorAlert(); }, 30000);
+    };
+    window.closeDoctorAlert = function() {
+      var banner = document.getElementById('doctorAlertBanner');
+      if (banner) banner.classList.remove('show');
+      clearTimeout(_alertTimer);
+      clearInterval(_alertSoundTimer);
+    };
 
     // ================== localStorage CRUD ==================
     // ── FAB دوال زر الزائد (لوحة الممرضة) ──
