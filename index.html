@@ -2092,7 +2092,7 @@
     document.getElementById('loginPassword').addEventListener('keydown', function(e){ if(e.key==='Enter') doLocalLogin(); });
     document.getElementById('loginUser').addEventListener('keydown', function(e){ if(e.key==='Enter') doLocalLogin(); });
 
-    var
+    var _dataLoaded = false;
 
     // طلب إذن الإشعارات بعد تسجيل الدخول
     function requestPushPermission() {
