@@ -2564,7 +2564,7 @@
         </button>
         <button class="fab-pill" onclick="closeMobFab();openNotesOverlay()">
           <span class="fab-pill-icon notes">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+            <i class="fas fa-sticky-note" style="font-size:.9rem;color:white;"></i>
           </span>
           <span class="fab-pill-label">ملاحظات</span>
         </button>
@@ -2588,7 +2588,7 @@
     </button>
     <button class="fab-pill" id="deskPillNotes" onclick="closeFabDial();openNotesOverlay()">
       <span class="fab-pill-icon notes">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+        <i class="fas fa-sticky-note" style="font-size:.9rem;color:white;"></i>
       </span>
       <span class="fab-pill-label">ملاحظات</span>
     </button>
@@ -2707,7 +2707,7 @@
       <div style="padding:16px 20px; border-top:1.5px solid var(--border); display:flex; gap:10px;">
         <button id="deleteAppointmentModalBtn" onclick="deleteAppointmentFromModal()" class="btn-danger hidden" style="flex:1; padding:12px; font-size:.9rem;">إلغاء الموعد</button>
         <a id="appDetailsWhatsappBtn" href="#" target="_blank" style="flex:1; padding:12px; font-size:.9rem; background:#25D366; color:white; border:none; border-radius:var(--radius-sm); font-weight:700; font-family:inherit; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:7px; text-decoration:none;"><i class="fab fa-whatsapp" style="font-size:1.1rem;"></i> واتساب</a>
-        <button onclick="closeAppointmentDetailsModal()" class="btn-primary" style="flex:1; padding:12px; font-size:.9rem;">حسناً</button>
+        <button onclick="closeAppointmentDetailsModal()" class="btn-primary" style="flex:1; padding:12px; font-size:.9rem;justify-content:center;text-align:center;">حسناً</button>
       </div>
     </div>
   </div>
@@ -2891,7 +2891,7 @@
       </div>
       <div style="padding:18px;" id="dayDetailsContent"></div>
       <div style="padding:18px; border-top:1.5px solid var(--border); display:flex; justify-content:flex-end;">
-        <button onclick="closeDayDetailsModal()" class="btn-primary" style="padding:9px 22px;">حسناً</button>
+        <button onclick="closeDayDetailsModal()" class="btn-primary" style="padding:9px 22px;justify-content:center;text-align:center;">حسناً</button>
       </div>
     </div>
   </div>
@@ -3142,38 +3142,63 @@
     }
 
     // إشعار مخصص أسفل يمين — بدون أيقونة، يبقى 8 ثوانٍ، مع صوت
-    function showNotifToast(msg) {
-      const el = document.getElementById('notifToast');
-      if (!el) return;
-      el.textContent = msg;
-      el.classList.add('show');
-      playNotifSound();
-      clearTimeout(el._timer);
-      el._timer = setTimeout(() => el.classList.remove('show'), 8000);
+    // ── نظام إشعارات متعددة متراكمة ──
+    var _notifContainer = null;
+    function _getNotifContainer() {
+      if (!_notifContainer) {
+        _notifContainer = document.createElement('div');
+        _notifContainer.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9998;display:flex;flex-direction:column-reverse;gap:10px;';
+        document.body.appendChild(_notifContainer);
+      }
+      return _notifContainer;
     }
 
-    // ── عرض تنبيه الدكتور ──
-    var _alertTimer = null, _alertSoundTimer = null;
+    function _createNotif(msg, color, duration) {
+      var el = document.createElement('div');
+      el.style.cssText = 'background:' + color + ';color:white;font-weight:800;font-size:.92rem;padding:13px 22px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.2);opacity:0;transform:translateX(20px);transition:opacity .25s,transform .25s;white-space:nowrap;max-width:280px;cursor:pointer;';
+      el.textContent = msg;
+      _getNotifContainer().appendChild(el);
+      // animate in
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          el.style.opacity = '1';
+          el.style.transform = 'translateX(0)';
+        });
+      });
+      // dismiss on click
+      el.onclick = function() { _dismissNotif(el); };
+      // auto dismiss
+      el._timer = setTimeout(function() { _dismissNotif(el); }, duration || 8000);
+      return el;
+    }
+
+    function _dismissNotif(el) {
+      clearTimeout(el._timer);
+      el.style.opacity = '0';
+      el.style.transform = 'translateX(20px)';
+      setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 280);
+    }
+
+    function showNotifToast(msg) {
+      _createNotif(msg, 'var(--primary)', 8000);
+      playNotifSound();
+    }
+
+    // ── تنبيه الدكتور — يظهر كإشعار مرئي مع صوت متكرر ──
+    var _alertSoundTimer = null;
     window.showDoctorAlert = function(payload) {
-      var banner = document.getElementById('doctorAlertBanner');
-      var inner  = document.getElementById('alertBannerInner');
-      var title  = document.getElementById('alertBannerTitle');
-      if (!banner) return;
-      if (inner) inner.className = 'alert-banner-inner type-' + (payload.type || 'enter');
-      if (title) title.textContent = payload.message || 'تنبيه من الدكتور';
-      banner.classList.add('show');
-      clearTimeout(_alertTimer);
+      var color = payload.type === 'next' ? '#16a34a' : payload.type === 'custom' ? '#d97706' : '#0d9488';
+      var el = _createNotif(payload.message || 'تنبيه من الدكتور', color, 30000);
       clearInterval(_alertSoundTimer);
       playNotifSound();
       _alertSoundTimer = setInterval(playNotifSound, 5000);
-      _alertTimer = setTimeout(function() { window.closeDoctorAlert(); }, 30000);
+      // إيقاف الصوت عند الضغط
+      var origClick = el.onclick;
+      el.onclick = function() { clearInterval(_alertSoundTimer); origClick.call(this); };
+      // إيقاف الصوت بعد 30 ثانية
+      setTimeout(function() { clearInterval(_alertSoundTimer); }, 30000);
     };
-    window.closeDoctorAlert = function() {
-      var banner = document.getElementById('doctorAlertBanner');
-      if (banner) banner.classList.remove('show');
-      clearTimeout(_alertTimer);
-      clearInterval(_alertSoundTimer);
-    };
+    window.closeDoctorAlert = function() { clearInterval(_alertSoundTimer); };
 
     // ================== localStorage CRUD ==================
     // ── FAB دوال زر الزائد (لوحة الممرضة) ──
@@ -3390,17 +3415,28 @@
 
     // ── فحص الطلبات الجديدة الفائتة عند فتح اللوحة ──
     function checkMissedAppointments() {
-      var lastSeen = parseInt(localStorage.getItem('nurseLastSeen') || '0', 10);
+      var SEEN_KEY = 'docbook_nur_apptSeen';
+      var lastSeen = parseInt(localStorage.getItem(SEEN_KEY) || '0', 10);
+      var nowTs = Date.now();
+
+      // حدّث فوراً لمنع التكرار عند التحديث
+      localStorage.setItem(SEEN_KEY, String(nowTs));
+
+      if (lastSeen === 0) return; // أول مرة يفتح — لا إشعار
+
       var pending = allRecords.filter(function(r) {
         if (r.Status !== 'Pending') return false;
-        var ts = r.createdAt ? new Date(r.createdAt).getTime() : 0;
+        var ts = 0;
+        if (r.createdAt && r.createdAt.toMillis) ts = r.createdAt.toMillis();
+        else if (r.createdAt) ts = new Date(r.createdAt).getTime();
         return ts > lastSeen;
       });
-      if (pending.length > 0) {
-        var msg = pending.length === 1 ? 'طلب جديد فائت' : pending.length + ' طلبات جديدة فائتة';
-        showNotifToast(msg);
+
+      if (pending.length === 1) {
+        showNotifToast('طلب جديد: ' + (pending[0].PatientName || 'مريض'));
+      } else if (pending.length > 1) {
+        showNotifToast(pending.length + ' طلبات جديدة');
       }
-      localStorage.setItem('nurseLastSeen', String(Date.now()));
     }
 
     function initializeData() {
@@ -3480,6 +3516,25 @@
         },
         function(e) { console.error('[alerts]', e); }
       );
+
+      // ── BroadcastChannel: fast path لنفس الجهاز ──
+      var _lastAlertTs = 0;
+      function _handleFastAlert(payload) {
+        if (!payload || payload.direction !== 'doctorToNurse') return;
+        if (payload.ts <= _lastAlertTs) return;
+        _lastAlertTs = payload.ts;
+        if (typeof showDoctorAlert === 'function') showDoctorAlert({ type: payload.type, message: payload.message });
+      }
+      try {
+        var _nurseBC = new BroadcastChannel('nurseAlerts');
+        _nurseBC.onmessage = function(e) { _handleFastAlert(e.data); };
+      } catch(e) {}
+      // localStorage fallback لنفس المتصفح
+      window.addEventListener('storage', function(e) {
+        if (e.key === 'nurseAlertPayload') {
+          try { _handleFastAlert(JSON.parse(e.newValue)); } catch(ex) {}
+        }
+      });
 
       // الإعدادات
       window._fb.getDoc('settings', 'nurse').then(function(snap) {
@@ -5595,6 +5650,7 @@
     window._fb.setDoc(window._fb.docRef('config', 'notes'), { list: notes })
       .then(function() {
         if (callback) callback();
+      }
         showToast('تم حفظ الملاحظة بنجاح', 'success');
       })
       .catch(function(e) {
@@ -5632,7 +5688,9 @@
   };
 
   window.saveNote = function() {
-    const text = document.getElementById('noteTextInput').value.trim();
+    const input = document.getElementById('noteTextInput');
+    const text = input.value.trim();
+    const editId = input.dataset.editId ? parseInt(input.dataset.editId) : null;
     if (!text) {
       showToast('الرجاء إدخال ملاحظة', 'error');
       return;
@@ -5668,7 +5726,23 @@
     });
   };
 
-  window.deleteNote = function(id) {
+  window.editNote = function(id) {
+    window.loadNotesData(function(notes) {
+      var note = (notes || []).find(function(n) { return n.id === id; });
+      if (!note) return;
+      var form  = document.getElementById('addNoteForm');
+      var input = document.getElementById('noteTextInput');
+      if (!form || !input) return;
+      form.style.display = 'block';
+      input.value = note.text;
+      input.dataset.editId = String(id);
+      input.focus();
+      var saveBtn = form.querySelector('button');
+      if (saveBtn) saveBtn.textContent = 'تحديث الملاحظة';
+    });
+  };
+
+    window.deleteNote = function(id) {
     window.loadNotesData(function(notes) {
       if (!notes) notes = [];
       const filteredNotes = notes.filter(n => n.id !== id);
@@ -5722,6 +5796,9 @@
               <p style="font-size:.88rem; line-height:1.65; color:var(--text); flex:1; white-space:pre-wrap; word-break:break-word;">${escapeHtml(n.text)}</p>
               <div style="display:flex; gap:2px; flex-shrink:0;">
                 <button class="note-pin-btn" onclick="togglePin(${n.id})" title="${n.pinned ? 'إلغاء التثبيت' : 'تثبيت'}">${n.pinned ? '📌' : '📍'}</button>
+                <button onclick="editNote(${n.id})" title="تعديل" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--primary);border-radius:6px;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='var(--primary-light)'" onmouseout="this.style.background='none'">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
                 <button class="note-delete-btn" onclick="deleteNote(${n.id})" title="حذف"><i class="fas fa-trash"></i></button>
               </div>
             </div>
