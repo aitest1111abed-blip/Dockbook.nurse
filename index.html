@@ -1979,6 +1979,9 @@
           included_segments: ['Total Subscriptions'],
           headings: { ar: heading, en: heading },
           contents:  { ar: content,  en: content },
+          android_sound: 'notification',
+          ios_sound:     'notification.wav',
+          priority: 10,
         })
       }).catch(function(e) { console.error('[OneSignal]', e); });
     };
@@ -1987,7 +1990,7 @@
   <!-- ═══════ Firebase SDK ═══════ -->
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, browserLocalPersistence, setPersistence }
       from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
     import { getFirestore, doc, collection, getDoc, setDoc, updateDoc, deleteDoc,
              onSnapshot, addDoc, query, orderBy, serverTimestamp, writeBatch }
@@ -2005,6 +2008,7 @@
     const _app  = initializeApp(firebaseConfig);
     const _auth = getAuth(_app);
     const _db   = getFirestore(_app);
+    setPersistence(_auth, browserLocalPersistence).catch(function(){});
 
     window._fb = {
       auth: _auth, db: _db,
@@ -2065,14 +2069,12 @@
             return window._fb.getDoc('users', cred.user.uid).then(function(snap) {
               var role = snap.exists() ? snap.data().role : null;
               if (role !== 'nurse') {
-                _authResolved = false;
                 return window._fb.signOut().then(function() {
                   btn.disabled = false; btn.textContent = 'تسجيل الدخول';
                   err.style.display = 'block';
                   err.textContent = 'هذا الحساب غير مصرح له بالدخول هنا';
                 });
               }
-              _authResolved = true;
               btn.disabled = false; btn.textContent = 'تسجيل الدخول';
             });
           })
@@ -2090,68 +2092,48 @@
     document.getElementById('loginPassword').addEventListener('keydown', function(e){ if(e.key==='Enter') doLocalLogin(); });
     document.getElementById('loginUser').addEventListener('keydown', function(e){ if(e.key==='Enter') doLocalLogin(); });
 
-    var _authResolved = false;
-    var _authResolved = false;
-    var _checkingRole  = false;
-    var _SESSION_KEY   = 'docbook_nur_auth';
-    var _SESSION_TTL   = 8 * 60 * 60 * 1000; // 8 ساعات
+    var
 
-    function _saveSession()  { localStorage.setItem(_SESSION_KEY, String(Date.now())); }
-    function _clearSession() { localStorage.removeItem(_SESSION_KEY); }
-    function _hasSession()   {
-      var t = parseInt(localStorage.getItem(_SESSION_KEY) || '0', 10);
-      return t > 0 && (Date.now() - t) < _SESSION_TTL;
+    // طلب إذن الإشعارات بعد تسجيل الدخول
+    function requestPushPermission() {
+      try {
+        if (typeof OneSignal === 'undefined') return;
+        OneSignal.Notifications.requestPermission().then(function(accepted) {
+          console.log('[OneSignal] permission:', accepted ? 'granted' : 'denied');
+        }).catch(function(){});
+      } catch(e) {}
     }
+    var _dataLoaded = false;
 
     function initAuthWatch() {
       var ov = document.getElementById('loginOverlay');
 
-      // إذا كانت الجلسة محفوظة → أخفِ شاشة الدخول فوراً
-      if (_hasSession()) {
-        ov.style.display = 'none';
-        _authResolved = true;
-      }
-
       window._fb.onAuth(function(user) {
         if (user) {
-          // إذا الجلسة محفوظة → افتح مباشرةً بدون انتظار role check
-          if (_hasSession() && !_authResolved) {
-            _authResolved = true;
-            ov.style.display = 'none';
-            if (typeof initializeData === 'function') initializeData();
-          }
-          // تحقق من الدور في الخلفية
-          if (!_checkingRole) {
-            _checkingRole = true;
+          // Firebase يؤكد الجلسة — افتح اللوحة
+          ov.style.transition = 'opacity .3s';
+          ov.style.opacity = '0';
+          setTimeout(function(){ ov.style.display = 'none'; }, 300);
+
+          // تحقق من الدور مرة واحدة فقط
+          if (!_dataLoaded) {
             window._fb.getDoc('users', user.uid).then(function(snap) {
-              _checkingRole = false;
               var role = snap.exists() ? snap.data().role : null;
               if (role !== 'nurse') {
-                _authResolved = false;
-                _clearSession();
                 window._fb.signOut();
                 ov.style.display = 'flex'; ov.style.opacity = '1';
                 var errEl = document.getElementById('loginError');
                 if (errEl) { errEl.style.display='block'; errEl.textContent='هذا الحساب غير مصرح له بالدخول هنا'; }
                 return;
               }
-              if (!_authResolved) {
-                _authResolved = true;
-                _saveSession();
-                ov.style.transition = 'opacity .3s'; ov.style.opacity = '0';
-                setTimeout(function(){ ov.style.display = 'none'; }, 300);
-                if (typeof initializeData === 'function') initializeData();
-              } else {
-                _saveSession(); // تجديد الجلسة
-              }
-            }).catch(function(e) {
-              _checkingRole = false;
-              console.error('[Auth role check]', e);
-            });
+              _dataLoaded = true;
+              if (typeof initializeData === 'function') initializeData();
+              setTimeout(requestPushPermission, 2000);
+            }).catch(function(e) { console.error('[Auth]', e); });
           }
         } else {
-          if (_checkingRole || _authResolved || _hasSession()) return;
-          _clearSession();
+          // Firebase يؤكد عدم وجود جلسة — أظهر شاشة الدخول
+          _dataLoaded = false;
           ov.style.display = 'flex'; ov.style.opacity = '1';
         }
       });
@@ -5821,7 +5803,6 @@
       if (typeof _unsubClosed      === 'function') _unsubClosed();
       if (typeof _unsubNurseAlerts === 'function') _unsubNurseAlerts();
       window._fb.signOut().then(function() {
-        _clearSession();
         var ov = document.getElementById('loginOverlay');
         ov.style.display = 'flex'; ov.style.opacity = '0';
         setTimeout(function(){ ov.style.opacity = '1'; ov.style.transition = 'opacity .3s'; }, 50);
