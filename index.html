@@ -1954,38 +1954,6 @@
   <link rel="manifest" href="./manifest.json"/>
   <script>if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(function(){});</script>
 
-  <!-- OneSignal -->
-  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-  <script>
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    OneSignalDeferred.push(async function(OneSignal) {
-      await OneSignal.init({
-        appId: "5abd2003-e1ef-4cec-866c-248959b6dacb",
-        allowLocalhostAsSecureOrigin: true,
-        notifyButton: { enable: false },
-      });
-    });
-
-    // دالة لإرسال إشعار عبر OneSignal REST API
-    window.sendOSNotification = function(apiKey, heading, content, targetAppId) {
-      fetch('https://onesignal.com/api/v1/notifications', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Key ' + apiKey,
-        },
-        body: JSON.stringify({
-          app_id: targetAppId,
-          included_segments: ['Total Subscriptions'],
-          headings: { ar: heading, en: heading },
-          contents:  { ar: content,  en: content },
-          android_sound: 'notification',
-          ios_sound:     'notification.wav',
-          priority: 10,
-        })
-      }).catch(function(e) { console.error('[OneSignal]', e); });
-    };
-  </script>
 
   <!-- ═══════ Firebase SDK ═══════ -->
   <script type="module">
@@ -2094,14 +2062,6 @@
 
     var _dataLoaded = false;
 
-    // طلب إذن الإشعارات بعد تسجيل الدخول
-    function requestPushPermission() {
-      try {
-        if (typeof OneSignal === 'undefined') return;
-        OneSignal.Notifications.requestPermission().then(function(accepted) {
-          console.log('[OneSignal] permission:', accepted ? 'granted' : 'denied');
-        }).catch(function(){});
-      } catch(e) {}
     }
     var _dataLoaded = false;
 
@@ -2128,7 +2088,6 @@
               }
               _dataLoaded = true;
               if (typeof initializeData === 'function') initializeData();
-              setTimeout(requestPushPermission, 2000);
             }).catch(function(e) { console.error('[Auth]', e); });
           }
         } else {
@@ -3519,13 +3478,7 @@
           if (ev.data?.key === 'appointments') {
             showNotifToast('طلب جديد');
             // OneSignal إشعار للممرضة
-            window.sendOSNotification(
-              'os_v2_app_lk6saa7b55gozbtmesevtnw2zooo3lshuvvep6m7q4qbngagvzdyzjdgumixjtshz6pagbqjjqm2yhdudz27dlf4f2w5ozcruhrpnsq',
-              'طلب حجز جديد',
-              'وصل طلب حجز جديد من مريض',
-              '5abd2003-e1ef-4cec-866c-248959b6dacb'
-            );
-          }
+                      }
         };
       } catch(e) {}
       
@@ -3573,13 +3526,6 @@
               message: 'تم قبول موعد', read: false,
               createdAt: window._fb.serverTimestamp()
             }).catch(function(){});
-            // إشعار فوري عبر OneSignal للطبيب
-            window.sendOSNotification(
-              'os_v2_app_xyjohccl25hkfmyp5yrfbi5ex47b5mdbdsmesnfmkyn7fpjethppgji37djiq2niyr2d44oyk67yua3kwhvh6jtodt4jqwv57mw7kaq',
-              'تم قبول موعد',
-              'قبلت الممرضة موعداً بنجاح',
-              'be12e388-4bd7-4ea2-b30f-ee2250a3a4bf'
-            );
           } else if (status === 'Rejected') {
             sendWhatsAppRejection(record.Phone, record.PatientName, record.Date, record._rejectAltSlots || []);
           } else if (status === 'Cancelled') {
