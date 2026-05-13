@@ -5649,9 +5649,8 @@
   window.saveNotesData = function(notes, callback) {
     window._fb.setDoc(window._fb.docRef('config', 'notes'), { list: notes })
       .then(function() {
-        if (callback) callback();
-      }
         showToast('تم حفظ الملاحظة بنجاح', 'success');
+        if (callback) callback();
       })
       .catch(function(e) {
         showToast('فشل حفظ الملاحظة', 'error');
@@ -5684,29 +5683,38 @@
 
   window.hideAddNoteForm = function() {
     document.getElementById('addNoteForm').style.display = 'none';
-    document.getElementById('noteTextInput').value = '';
+    var inp = document.getElementById('noteTextInput');
+    inp.value = '';
+    delete inp.dataset.editId;
+    var saveBtn = document.getElementById('addNoteForm')?.querySelector('button[onclick*="saveNote"]');
+    if (saveBtn) saveBtn.textContent = 'حفظ';
   };
 
   window.saveNote = function() {
-    const input = document.getElementById('noteTextInput');
-    const text = input.value.trim();
+    const input  = document.getElementById('noteTextInput');
+    const text   = input.value.trim();
     const editId = input.dataset.editId ? parseInt(input.dataset.editId) : null;
-    if (!text) {
-      showToast('الرجاء إدخال ملاحظة', 'error');
-      return;
-    }
+    if (!text) { showToast('الرجاء إدخال ملاحظة', 'error'); return; }
 
     window.loadNotesData(function(notes) {
       if (!notes) notes = [];
-      const newNote = {
-        id: Date.now(),
-        text: text,
-        pinned: false,
-        date: new Date().toLocaleDateString('ar-EG')
-      };
-      notes.unshift(newNote);
-
+      if (editId) {
+        // وضع التعديل
+        var idx = notes.findIndex(function(n) { return n.id === editId; });
+        if (idx !== -1) {
+          notes[idx].text = text;
+          notes[idx].date = new Date().toLocaleDateString('ar-EG');
+        }
+      } else {
+        // وضع الإضافة
+        notes.unshift({ id: Date.now(), text: text, pinned: false, date: new Date().toLocaleDateString('ar-EG') });
+      }
       window.saveNotesData(notes, function() {
+        // إعادة تعيين الحالة
+        input.value = '';
+        delete input.dataset.editId;
+        var saveBtn = document.getElementById('addNoteForm')?.querySelector('button[onclick*="saveNote"]');
+        if (saveBtn) saveBtn.textContent = 'حفظ';
         window.hideAddNoteForm();
         window.renderNotes();
       });
@@ -5737,7 +5745,7 @@
       input.value = note.text;
       input.dataset.editId = String(id);
       input.focus();
-      var saveBtn = form.querySelector('button');
+      var saveBtn = form.querySelector('button[onclick*="saveNote"]');
       if (saveBtn) saveBtn.textContent = 'تحديث الملاحظة';
     });
   };
