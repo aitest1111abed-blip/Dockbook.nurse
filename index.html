@@ -3510,6 +3510,9 @@
             if (d.read) return;
             var ts = d.createdAt ? d.createdAt.toMillis() : 0;
             if (ts <= _alertSeenAt) return;
+            var alertKey = change.doc.id;
+            if (_shownAlertIds.has(alertKey)) return;
+            _shownAlertIds.add(alertKey);
             if (typeof showDoctorAlert === 'function') showDoctorAlert({ type: d.type, message: d.message });
             window._fb.updateDoc(change.doc.ref, { read: true });
           });
@@ -3518,10 +3521,15 @@
       );
 
       // ── BroadcastChannel: fast path لنفس الجهاز ──
+      var _shownAlertIds = new Set(); // منع التكرار بين BC وFirestore
       var _lastAlertTs = 0;
+
       function _handleFastAlert(payload) {
         if (!payload || payload.direction !== 'doctorToNurse') return;
         if (payload.ts <= _lastAlertTs) return;
+        var key = String(payload.ts) + payload.type;
+        if (_shownAlertIds.has(key)) return;
+        _shownAlertIds.add(key);
         _lastAlertTs = payload.ts;
         if (typeof showDoctorAlert === 'function') showDoctorAlert({ type: payload.type, message: payload.message });
       }
@@ -5639,23 +5647,31 @@
   <script>
   // جلب الملاحظات من localStorage
   window.loadNotesData = function(callback) {
-    window._fb.getDoc('config', 'notes').then(function(snap) {
-      var notes = snap.exists() ? (snap.data().list || []) : [];
-      callback(Array.isArray(notes) ? notes : []);
-    }).catch(function() { callback([]); });
+    function doLoad() {
+      window._fb.getDoc('config', 'notes').then(function(snap) {
+        var notes = snap.exists() ? (snap.data().list || []) : [];
+        callback(Array.isArray(notes) ? notes : []);
+      }).catch(function() { callback([]); });
+    }
+    if (window._fbReady) doLoad();
+    else window.addEventListener('fbReady', doLoad, { once: true });
   }
 
   // حفظ الملاحظات في Firestore
   window.saveNotesData = function(notes, callback) {
-    window._fb.setDoc(window._fb.docRef('config', 'notes'), { list: notes })
-      .then(function() {
-        showToast('تم حفظ الملاحظة بنجاح', 'success');
-        if (callback) callback();
-      })
-      .catch(function(e) {
-        showToast('فشل حفظ الملاحظة', 'error');
-        console.error(e);
-      });
+    function doSave() {
+      window._fb.setDoc(window._fb.docRef('config', 'notes'), { list: notes })
+        .then(function() {
+          showToast('تم حفظ الملاحظة بنجاح', 'success');
+          if (callback) callback();
+        })
+        .catch(function(e) {
+          showToast('فشل حفظ الملاحظة', 'error');
+          console.error(e);
+        });
+    }
+    if (window._fbReady) doSave();
+    else window.addEventListener('fbReady', doSave, { once: true });
   }
 
   window.openNotesOverlay = function() {
