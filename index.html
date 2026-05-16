@@ -3442,7 +3442,12 @@
       }
     }
 
+    var _initialized = false;
+
     function initializeData() {
+      // منع الاستدعاء المزدوج
+      if (_initialized) return;
+      _initialized = true;
       migrateLocalStorageToFirestore();
       _alertSeenAt = Date.now();
 
