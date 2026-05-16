@@ -3412,6 +3412,9 @@
     var _unsubAppt = null, _unsubPat = null, _unsubClosed = null, _unsubNurseAlerts = null;
     var _alertSeenAt = 0;
     var _nurseFirstLoad = false;
+    // منع التكرار — خارج initializeData ليبقى بين الاستدعاءات
+    var _shownAlertIds = new Set();
+    var _lastAlertTs   = 0;
 
     // ── فحص الطلبات الجديدة الفائتة عند فتح اللوحة ──
     function checkMissedAppointments() {
@@ -3521,9 +3524,6 @@
       );
 
       // ── BroadcastChannel: fast path لنفس الجهاز ──
-      var _shownAlertIds = new Set(); // منع التكرار بين BC وFirestore
-      var _lastAlertTs = 0;
-
       function _handleFastAlert(payload) {
         if (!payload || payload.direction !== 'doctorToNurse') return;
         if (payload.ts <= _lastAlertTs) return;
