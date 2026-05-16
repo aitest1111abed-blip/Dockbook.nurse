@@ -3520,7 +3520,7 @@
             if (ts <= _alertSeenAt) return;
             var alertKey = change.doc.id;
             if (_shownAlertIds.has(alertKey)) return;
-            _shownAlertIds.add(alertKey);
+            _shownAlertIds.add(alertKey); // أضف فوراً قبل العرض لمنع التكرار
             if (typeof showDoctorAlert === 'function') showDoctorAlert({ type: d.type, message: d.message });
             window._fb.updateDoc(change.doc.ref, { read: true });
           });
@@ -3534,7 +3534,7 @@
         // استخدم docId كـ key موحّد مع Firestore
         var key = payload.docId || (String(payload.ts) + payload.type);
         if (_shownAlertIds.has(key)) return;
-        _shownAlertIds.add(key);
+        _shownAlertIds.add(key); // أضف فوراً قبل العرض لمنع التكرار
         _lastAlertTs = payload.ts || Date.now();
         if (typeof showDoctorAlert === 'function') showDoctorAlert({ type: payload.type, message: payload.message });
       }
@@ -3542,12 +3542,6 @@
         var _nurseBC = new BroadcastChannel('nurseAlerts');
         _nurseBC.onmessage = function(e) { _handleFastAlert(e.data); };
       } catch(e) {}
-      // localStorage fallback لنفس المتصفح
-      window.addEventListener('storage', function(e) {
-        if (e.key === 'nurseAlertPayload') {
-          try { _handleFastAlert(JSON.parse(e.newValue)); } catch(ex) {}
-        }
-      });
 
       // الإعدادات
       window._fb.getDoc('settings', 'nurse').then(function(snap) {
