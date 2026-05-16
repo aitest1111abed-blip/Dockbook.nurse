@@ -3526,11 +3526,11 @@
       // ── BroadcastChannel: fast path لنفس الجهاز ──
       function _handleFastAlert(payload) {
         if (!payload || payload.direction !== 'doctorToNurse') return;
-        if (payload.ts <= _lastAlertTs) return;
-        var key = String(payload.ts) + payload.type;
+        // استخدم docId كـ key موحّد مع Firestore
+        var key = payload.docId || (String(payload.ts) + payload.type);
         if (_shownAlertIds.has(key)) return;
         _shownAlertIds.add(key);
-        _lastAlertTs = payload.ts;
+        _lastAlertTs = payload.ts || Date.now();
         if (typeof showDoctorAlert === 'function') showDoctorAlert({ type: payload.type, message: payload.message });
       }
       try {
