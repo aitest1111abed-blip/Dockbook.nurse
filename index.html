@@ -3187,7 +3187,10 @@
     // ── تنبيه الدكتور — يظهر كإشعار مرئي مع صوت متكرر ──
     var _alertSoundTimer = null;
     window.showDoctorAlert = function(payload) {
-      var color = payload.type === 'next' ? '#16a34a' : payload.type === 'custom' ? '#d97706' : '#0d9488';
+      var color = payload.type === 'next'         ? '#16a34a'
+                : payload.type === 'custom'       ? '#d97706'
+                : payload.type === 'newManualAppt'? '#7c3aed'
+                : '#0d9488';
       var el = _createNotif(payload.message || 'تنبيه من الدكتور', color, 30000);
       clearInterval(_alertSoundTimer);
       playNotifSound();
@@ -3600,8 +3603,14 @@
             sendWhatsAppConfirmation(record.Phone, record.PatientName, record.Date, record.Slot, record.VisitType);
             window._fb.addDoc(window._fb.col('alerts'), {
               type: 'accepted', direction: 'nurseToDoctor',
-              message: 'تم قبول موعد', read: false,
+              message: 'تم قبول موعد: ' + (record.PatientName || ''), read: false,
               createdAt: window._fb.serverTimestamp()
+            }).then(function(docRef) {
+              // BroadcastChannel fast path لنفس الجهاز
+              var payload = { type: 'accepted', direction: 'nurseToDoctor',
+                              message: 'تم قبول موعد: ' + (record.PatientName || ''),
+                              ts: Date.now(), docId: docRef.id };
+              try { new BroadcastChannel('doctorAlerts').postMessage(payload); } catch(e) {}
             }).catch(function(){});
           } else if (status === 'Rejected') {
             sendWhatsAppRejection(record.Phone, record.PatientName, record.Date, record._rejectAltSlots || []);
