@@ -2212,7 +2212,54 @@
             <style>
               @keyframes pendingPulse { 0%,100%{opacity:0;transform:scale(1)} 50%{opacity:.6;transform:scale(1.06)} }
               @keyframes acceptedPulse { 0%,100%{opacity:0;transform:scale(1)} 50%{opacity:.55;transform:scale(1.06)} }
-            </style>
+          
+    /* ─── Message Customizer ─── */
+    .msg-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+    }
+    .msg-card-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 8px;
+    }
+    .msg-card-title { font-weight: 700; font-size: .84rem; color: var(--text-primary); }
+    .msg-card-badge { font-size: .68rem; padding: 2px 8px; border-radius: 20px; font-weight: 700; }
+    .msg-badge-confirm  { background: #dcfce7; color: #16a34a; }
+    .msg-badge-reject   { background: #fee2e2; color: #dc2626; }
+    .msg-badge-cancel   { background: #fef3c7; color: #d97706; }
+    .msg-badge-reminder { background: #ede9fe; color: #7c3aed; }
+    .msg-textarea {
+      width: 100%; border: 1.5px solid var(--border); border-radius: 10px;
+      padding: 10px 12px; font-family: inherit; font-size: .82rem;
+      resize: vertical; min-height: 80px; background: white;
+      color: var(--text-primary); line-height: 1.6; display: none;
+    }
+    .msg-preview {
+      font-size: .82rem; color: var(--text-secondary); line-height: 1.6;
+      white-space: pre-wrap; word-break: break-word;
+      background: #f8fafc; border-radius: 8px; padding: 8px 10px;
+    }
+    .msg-vars { font-size: .7rem; color: var(--text-muted); margin-top: 6px; }
+    .msg-btns { display: flex; gap: 6px; margin-top: 8px; justify-content: flex-end; }
+    .btn-msg-edit {
+      background: var(--primary-light); color: var(--primary); border: 1px solid var(--border);
+      border-radius: 8px; padding: 5px 12px; font-size: .76rem; font-weight: 700;
+      cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 4px;
+    }
+    .btn-msg-save {
+      background: var(--primary); color: white; border: none;
+      border-radius: 8px; padding: 5px 12px; font-size: .76rem; font-weight: 700;
+      cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 4px;
+    }
+    .btn-msg-reset {
+      background: none; color: var(--text-muted); border: 1px solid var(--border);
+      border-radius: 8px; padding: 5px 10px; font-size: .72rem;
+      cursor: pointer; font-family: inherit;
+    }
+  </style>
             <div id="pendingCardsContainer"></div>
           </div>
 
@@ -2562,6 +2609,12 @@
           </span>
           <span class="fab-pill-label">موعد يدوي</span>
         </button>
+        <button class="fab-pill" onclick="closeMobFab();openMsgCustomizer()">
+          <span class="fab-pill-icon" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </span>
+          <span class="fab-pill-label">تخصيص الرسائل</span>
+        </button>
         <button class="fab-pill" onclick="closeMobFab();openNotesOverlay()">
           <span class="fab-pill-icon notes">
             <i class="fas fa-sticky-note" style="font-size:.9rem;color:white;"></i>
@@ -2585,6 +2638,12 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2.5"/><path d="M3 9h18"/><path d="M8 2v3M16 2v3"/><path d="M9 14.5l1.5 1.5 3-3"/></svg>
       </span>
       <span class="fab-pill-label">موعد يدوي</span>
+    </button>
+    <button class="fab-pill" id="deskPillMsgs" onclick="closeFabDial();openMsgCustomizer()">
+      <span class="fab-pill-icon" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </span>
+      <span class="fab-pill-label">تخصيص الرسائل</span>
     </button>
     <button class="fab-pill" id="deskPillNotes" onclick="closeFabDial();openNotesOverlay()">
       <span class="fab-pill-icon notes">
@@ -3705,14 +3764,23 @@
     }
 
     function sendWhatsAppConfirmation(phone, name, date, slot, type) {
-      const msg = `تم قبول موعدك ${formatDateAr(date)} ${slot==='Morning'?'صباحاً':'مساءً'}`;
+      const slotLabel = slot==='Morning'?'صباحاً':'مساءً';
+      const template = getMsg ? getMsg('confirm') : _defaultMsgs.confirm;
+      const msg = template
+        .replace('{اسم}', name)
+        .replace('{تاريخ}', formatDateAr(date))
+        .replace('{فترة}', slotLabel)
+        .replace('{نوع}', type || 'زيارة');
       const normalized = normalizePhone(phone);
       window.open(`https://wa.me/${normalized}?text=${encodeURIComponent(msg)}`, '_blank');
       setTimeout(() => openSmsFallbackModal(normalized, msg), 1800);
     }
 
     function sendWhatsAppRejection(phone, name, date, altSlots) {
-      let msg = `نسعى جاهدين لتعويض الموعد الذي تم رفضه\n\nنأسف، نظراً للضغط وعدم توفر مواعيد في ${formatDateAr(date)}، لم نتمكن من تأكيد موعدكم.`;
+      const template_r = getMsg ? getMsg('reject') : _defaultMsgs.reject;
+      let msg = template_r
+        .replace('{اسم}', name||'')
+        .replace('{تاريخ}', formatDateAr(date));
       if (altSlots && altSlots.length > 0) {
         msg += `\n\nالمواعيد المتاحة للتعويض:\n`;
         altSlots.forEach((s, i) => {
@@ -3726,7 +3794,10 @@
     }
 
     function sendWhatsAppCancellation(phone, name, date) {
-      const msg = `تم إلغاء موعدك ${formatDateAr(date)}`;
+      const template_c = getMsg ? getMsg('cancel') : _defaultMsgs.cancel;
+      const msg = template_c
+        .replace('{اسم}', name)
+        .replace('{تاريخ}', formatDateAr(date));
       const normalized = normalizePhone(phone);
       window.open(`https://wa.me/${normalized}?text=${encodeURIComponent(msg)}`, '_blank');
       setTimeout(() => openSmsFallbackModal(normalized, msg), 1800);
@@ -4762,7 +4833,12 @@
       const slot   = record.Slot === 'Morning' ? 'الصباحية' : record.Slot === 'Evening' ? 'المسائية' : '';
       const date   = formatDateAr(record.Date);
       const visit  = record.VisitType || 'الزيارة';
-      return `السلام عليكم ${record.PatientName},\n\nهذا تذكير بموعدكم لدينا اليوم ${date} في الفترة ${slot}.\nنوع الزيارة: ${visit}.\n\nنرجو الحضور في الوقت المحدد.\nشكراً لكم 🌿`;
+      const template_rem = getMsg ? getMsg('reminder') : _defaultMsgs.reminder;
+      return template_rem
+        .replace('{اسم}', record.PatientName)
+        .replace('{تاريخ}', date)
+        .replace('{فترة}', slot)
+        .replace('{نوع}', visit);
     }
 
     // ── متغير عالمي لتتبع الزر الحالي والسجل ──
@@ -5917,5 +5993,216 @@
   </div>
   <!-- إشعار طلب جديد -->
   <div id="notifToast"></div>
+
+  <!-- ══ مودال تخصيص الرسائل ══ -->
+  <div id="msgCustomizerModal" class="hidden fixed inset-0 z-[300] flex items-center justify-center p-4 modal-overlay" onclick="if(event.target===this)closeMsgCustomizer()">
+    <div class="modal-content w-full" style="max-width:520px;border-radius:20px;overflow:hidden;display:flex;flex-direction:column;max-height:90vh;">
+      <div style="padding:16px 20px;border-bottom:1.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+        <h3 style="font-weight:800;font-size:1rem;color:var(--text-primary);">تخصيص رسائل المريض</h3>
+        <button onclick="closeMsgCustomizer()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div style="overflow-y:auto;padding:16px 20px;flex:1;">
+
+        <!-- قبول الموعد -->
+        <div class="msg-card" id="msgCard_confirm">
+          <div class="msg-card-header">
+            <span class="msg-card-title">✅ رسالة قبول الموعد</span>
+            <span class="msg-card-badge msg-badge-confirm">عند القبول</span>
+          </div>
+          <div class="msg-preview" id="msgPreview_confirm"></div>
+          <div class="msg-vars">المتغيرات: {اسم} {تاريخ} {فترة} {نوع}</div>
+          <textarea class="msg-textarea" id="msgEdit_confirm" placeholder="اكتب نص الرسالة..."></textarea>
+          <div class="msg-btns">
+            <button class="btn-msg-reset" onclick="resetMsg('confirm')">إعادة تعيين</button>
+            <button class="btn-msg-edit" onclick="toggleMsgEdit('confirm')" id="msgEditBtn_confirm">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              تعديل
+            </button>
+            <button class="btn-msg-save" onclick="saveMsg('confirm')" id="msgSaveBtn_confirm" style="display:none;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              حفظ
+            </button>
+          </div>
+        </div>
+
+        <!-- رفض الموعد -->
+        <div class="msg-card" id="msgCard_reject">
+          <div class="msg-card-header">
+            <span class="msg-card-title">❌ رسالة رفض الموعد</span>
+            <span class="msg-card-badge msg-badge-reject">عند الرفض</span>
+          </div>
+          <div class="msg-preview" id="msgPreview_reject"></div>
+          <div class="msg-vars">المتغيرات: {اسم} {تاريخ}</div>
+          <textarea class="msg-textarea" id="msgEdit_reject" placeholder="اكتب نص الرسالة..."></textarea>
+          <div class="msg-btns">
+            <button class="btn-msg-reset" onclick="resetMsg('reject')">إعادة تعيين</button>
+            <button class="btn-msg-edit" onclick="toggleMsgEdit('reject')" id="msgEditBtn_reject">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              تعديل
+            </button>
+            <button class="btn-msg-save" onclick="saveMsg('reject')" id="msgSaveBtn_reject" style="display:none;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              حفظ
+            </button>
+          </div>
+        </div>
+
+        <!-- إلغاء الموعد -->
+        <div class="msg-card" id="msgCard_cancel">
+          <div class="msg-card-header">
+            <span class="msg-card-title">🚫 رسالة إلغاء الموعد</span>
+            <span class="msg-card-badge msg-badge-cancel">عند الإلغاء</span>
+          </div>
+          <div class="msg-preview" id="msgPreview_cancel"></div>
+          <div class="msg-vars">المتغيرات: {اسم} {تاريخ}</div>
+          <textarea class="msg-textarea" id="msgEdit_cancel" placeholder="اكتب نص الرسالة..."></textarea>
+          <div class="msg-btns">
+            <button class="btn-msg-reset" onclick="resetMsg('cancel')">إعادة تعيين</button>
+            <button class="btn-msg-edit" onclick="toggleMsgEdit('cancel')" id="msgEditBtn_cancel">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              تعديل
+            </button>
+            <button class="btn-msg-save" onclick="saveMsg('cancel')" id="msgSaveBtn_cancel" style="display:none;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              حفظ
+            </button>
+          </div>
+        </div>
+
+        <!-- تذكير موعد -->
+        <div class="msg-card" id="msgCard_reminder">
+          <div class="msg-card-header">
+            <span class="msg-card-title">🔔 رسالة تذكير الموعد</span>
+            <span class="msg-card-badge msg-badge-reminder">عند التذكير</span>
+          </div>
+          <div class="msg-preview" id="msgPreview_reminder"></div>
+          <div class="msg-vars">المتغيرات: {اسم} {تاريخ} {فترة} {نوع}</div>
+          <textarea class="msg-textarea" id="msgEdit_reminder" placeholder="اكتب نص الرسالة..."></textarea>
+          <div class="msg-btns">
+            <button class="btn-msg-reset" onclick="resetMsg('reminder')">إعادة تعيين</button>
+            <button class="btn-msg-edit" onclick="toggleMsgEdit('reminder')" id="msgEditBtn_reminder">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              تعديل
+            </button>
+            <button class="btn-msg-save" onclick="saveMsg('reminder')" id="msgSaveBtn_reminder" style="display:none;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              حفظ
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ══════════════════════════════════════════════
+    // نظام تخصيص رسائل المريض
+    // ══════════════════════════════════════════════
+
+    var _defaultMsgs = {
+      confirm:  'تم قبول موعدك {تاريخ} {فترة}\nنسعد برؤيتك 🌿',
+      reject:   'نسعى جاهدين لتعويض الموعد الذي تم رفضه\n\nنأسف، نظراً للضغط وعدم توفر مواعيد في {تاريخ}، لم نتمكن من تأكيد موعدكم.',
+      cancel:   'تم إلغاء موعدك {تاريخ}',
+      reminder: 'السلام عليكم {اسم},\n\nهذا تذكير بموعدكم لدينا اليوم {تاريخ} في الفترة {فترة}.\nنوع الزيارة: {نوع}.\n\nنرجو الحضور في الوقت المحدد.\nشكراً لكم 🌿'
+    };
+
+    var _customMsgs = {};
+    var _MSG_KEY = 'docbook_custom_msgs';
+
+    function loadCustomMsgs() {
+      if (window._fbReady) {
+        window._fb.getDoc('config', 'customMsgs').then(function(snap) {
+          _customMsgs = snap.exists() ? (snap.data() || {}) : {};
+          renderMsgPreviews();
+        }).catch(function() { renderMsgPreviews(); });
+      } else {
+        window.addEventListener('fbReady', loadCustomMsgs, { once: true });
+      }
+    }
+
+    function saveCustomMsgs() {
+      if (!window._fbReady) return;
+      window._fb.setDoc(window._fb.docRef('config', 'customMsgs'), _customMsgs, { merge: true })
+        .catch(function(e) { console.error('msgs save', e); });
+    }
+
+    function getMsg(type) {
+      return _customMsgs[type] || _defaultMsgs[type] || '';
+    }
+
+    function renderMsgPreviews() {
+      ['confirm','reject','cancel','reminder'].forEach(function(type) {
+        var el = document.getElementById('msgPreview_' + type);
+        if (el) el.textContent = getMsg(type);
+      });
+    }
+
+    window.openMsgCustomizer = function() {
+      document.getElementById('msgCustomizerModal').classList.remove('hidden');
+      loadCustomMsgs();
+    };
+
+    window.closeMsgCustomizer = function() {
+      document.getElementById('msgCustomizerModal').classList.add('hidden');
+    };
+
+    window.toggleMsgEdit = function(type) {
+      var textarea = document.getElementById('msgEdit_' + type);
+      var preview  = document.getElementById('msgPreview_' + type);
+      var editBtn  = document.getElementById('msgEditBtn_' + type);
+      var saveBtn  = document.getElementById('msgSaveBtn_' + type);
+      var isEditing = textarea.style.display === 'block';
+      if (isEditing) {
+        textarea.style.display = 'none';
+        preview.style.display  = 'block';
+        editBtn.style.display  = 'flex';
+        saveBtn.style.display  = 'none';
+      } else {
+        textarea.value = getMsg(type);
+        textarea.style.display = 'block';
+        preview.style.display  = 'none';
+        editBtn.style.display  = 'none';
+        saveBtn.style.display  = 'flex';
+        textarea.focus();
+      }
+    };
+
+    window.saveMsg = function(type) {
+      var textarea = document.getElementById('msgEdit_' + type);
+      var val = textarea.value.trim();
+      if (!val) { showToast('الرسالة فارغة', 'error'); return; }
+      _customMsgs[type] = val;
+      saveCustomMsgs();
+      var preview = document.getElementById('msgPreview_' + type);
+      if (preview) preview.textContent = val;
+      textarea.style.display = 'none';
+      if (preview) preview.style.display = 'block';
+      document.getElementById('msgEditBtn_' + type).style.display = 'flex';
+      document.getElementById('msgSaveBtn_' + type).style.display = 'none';
+      showToast('تم حفظ الرسالة', 'success');
+    };
+
+    window.resetMsg = function(type) {
+      delete _customMsgs[type];
+      saveCustomMsgs();
+      var preview = document.getElementById('msgPreview_' + type);
+      var textarea = document.getElementById('msgEdit_' + type);
+      if (preview) { preview.textContent = _defaultMsgs[type]; preview.style.display = 'block'; }
+      if (textarea) textarea.style.display = 'none';
+      document.getElementById('msgEditBtn_' + type).style.display = 'flex';
+      document.getElementById('msgSaveBtn_' + type).style.display = 'none';
+      showToast('تمت إعادة التعيين', 'success');
+    };
+
+    // ── تحميل الرسائل المخصصة عند بدء التشغيل ──
+    window.addEventListener('fbReady', function() {
+      window._fb.getDoc('config', 'customMsgs').then(function(snap) {
+        _customMsgs = snap.exists() ? (snap.data() || {}) : {};
+      }).catch(function(){});
+    }, { once: true });
+  </script>
 </body>
 </html>
