@@ -2259,6 +2259,23 @@
       border-radius: 8px; padding: 5px 10px; font-size: .72rem;
       cursor: pointer; font-family: inherit;
     }
+
+    /* ─── Message Customizer Full Screen ─── */
+    .msg-full-modal {
+      width: 100% !important;
+      height: 100% !important;
+      max-width: 100% !important;
+      max-height: 100% !important;
+      border-radius: 0 !important;
+    }
+    @media (max-width: 767px) {
+      .msg-full-modal {
+        border-radius: 20px !important;
+        height: 92vh !important;
+        max-width: 95% !important;
+      }
+      #msgCustomizerModal { padding: 16px !important; align-items: flex-end !important; }
+    }
   </style>
             <div id="pendingCardsContainer"></div>
           </div>
@@ -2617,7 +2634,7 @@
         </button>
         <button class="fab-pill" onclick="closeMobFab();openNotesOverlay()">
           <span class="fab-pill-icon notes">
-            <i class="fas fa-sticky-note" style="font-size:.9rem;color:white;"></i>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           </span>
           <span class="fab-pill-label">ملاحظات</span>
         </button>
@@ -2647,7 +2664,7 @@
     </button>
     <button class="fab-pill" id="deskPillNotes" onclick="closeFabDial();openNotesOverlay()">
       <span class="fab-pill-icon notes">
-        <i class="fas fa-sticky-note" style="font-size:.9rem;color:white;"></i>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
       </span>
       <span class="fab-pill-label">ملاحظات</span>
     </button>
@@ -5995,8 +6012,8 @@
   <div id="notifToast"></div>
 
   <!-- ══ مودال تخصيص الرسائل ══ -->
-  <div id="msgCustomizerModal" class="hidden fixed inset-0 z-[300] flex items-center justify-center p-4 modal-overlay" onclick="if(event.target===this)closeMsgCustomizer()">
-    <div class="modal-content w-full" style="max-width:520px;border-radius:20px;overflow:hidden;display:flex;flex-direction:column;max-height:90vh;">
+  <div id="msgCustomizerModal" class="hidden fixed inset-0 z-[300] flex items-center justify-center p-0 modal-overlay" onclick="if(event.target===this)closeMsgCustomizer()">
+    <div class="modal-content msg-full-modal" style="width:100%;height:100%;border-radius:0;overflow:hidden;display:flex;flex-direction:column;">
       <div style="padding:16px 20px;border-bottom:1.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
         <h3 style="font-weight:800;font-size:1rem;color:var(--text-primary);">تخصيص رسائل المريض</h3>
         <button onclick="closeMsgCustomizer()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);">
