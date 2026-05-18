@@ -3419,33 +3419,29 @@
     var _shownAlertIds = new Set();
     var _lastAlertTs   = 0;
 
-    // ── فحص الطلبات الجديدة الفائتة عند فتح اللوحة ──
-    function checkMissedAppointments() {
+    function checkMissedAlerts() { /* غير مستخدمة في لوحة الممرضة */ }
+
+    var _initialized = false;
+
+    // ── فحص الطلبات الجديدة الفائتة عند فتح لوحة الممرضة ──
+    function checkMissedNewRequests() {
       var SEEN_KEY = 'docbook_nur_apptSeen';
       var lastSeen = parseInt(localStorage.getItem(SEEN_KEY) || '0', 10);
       var nowTs = Date.now();
-
-      // حدّث فوراً لمنع التكرار عند التحديث
       localStorage.setItem(SEEN_KEY, String(nowTs));
-
-      if (lastSeen === 0) return; // أول مرة يفتح — لا إشعار
-
+      if (lastSeen === 0) return; // أول مرة — لا إشعار
       var pending = allRecords.filter(function(r) {
         if (r.Status !== 'Pending') return false;
-        var ts = 0;
-        if (r.createdAt && r.createdAt.toMillis) ts = r.createdAt.toMillis();
-        else if (r.createdAt) ts = new Date(r.createdAt).getTime();
-        return ts > lastSeen;
+        var ts = r.createdAt && r.createdAt.toMillis ? r.createdAt.toMillis()
+               : r.createdAt ? new Date(r.createdAt).getTime() : 0;
+        return ts > lastSeen && ts <= nowTs;
       });
-
-      if (pending.length === 1) {
-        showNotifToast('طلب جديد: ' + (pending[0].PatientName || 'مريض'));
-      } else if (pending.length > 1) {
-        showNotifToast(pending.length + ' طلبات جديدة');
-      }
+      if (pending.length === 0) return;
+      var msg = pending.length === 1
+        ? 'طلب جديد: ' + (pending[0].PatientName || 'مريض')
+        : pending.length + ' طلبات جديدة';
+      if (typeof showNotifToast === 'function') showNotifToast(msg);
     }
-
-    var _initialized = false;
 
     function initializeData() {
       // منع الاستدعاء المزدوج
@@ -3456,6 +3452,7 @@
 
       // المواعيد
       if (_unsubAppt) _unsubAppt();
+      var _nurApptFirst = true;
       _unsubAppt = window._fb.onSnapshot(window._fb.col('appointments'),
         function(snap) {
           allRecords = snap.docs.map(function(d) {
@@ -3463,6 +3460,7 @@
             data.id = d.id;
             return data;
           });
+          if (_nurApptFirst) { _nurApptFirst = false; setTimeout(checkMissedNewRequests, 1000); }
           // تحويل Accepted منتهي → NoShow
           var toUpdate = [];
           allRecords.forEach(function(r) {
