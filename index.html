@@ -4720,6 +4720,14 @@
           dayDiv.classList.add('past-day');
           if(selectedDayStr===dateStr) dayDiv.classList.add('selected');
           dayDiv.style.cursor = 'pointer';
+          const countPast=dayDensity[dateStr]||0;
+          if(countPast>0) {
+            const dot=document.createElement('div'); dot.className='compact-appointment-dot';
+            if(countPast<=2) dot.classList.add('compact-dot-low');
+            else if(countPast<=4) dot.classList.add('compact-dot-medium');
+            else dot.classList.add('compact-dot-high');
+            dayDiv.appendChild(dot);
+          }
           dayDiv.addEventListener('click', ()=> {
             selectedDayStr = dateStr;
             renderCalendar();
