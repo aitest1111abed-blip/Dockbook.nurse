@@ -3752,7 +3752,22 @@
       appointment.id = appointment.id || ('appt_' + Date.now() + '_' + Math.random().toString(36).substr(2,6));
       const ref = window._fb.docRef('appointments', appointment.id);
       window._fb.setDoc(ref, Object.assign({}, appointment, { createdAt: window._fb.serverTimestamp() }))
-        .then(function() { showToast('تم الحفظ بنجاح','success'); })
+        .then(function() {
+          showToast('تم الحفظ بنجاح','success');
+          // ── إرسال إشعار للطبيب عند إضافة موعد من الممرضة ──
+          window._fb.addDoc(window._fb.col('alerts'), {
+            type:      'newManualAppt',
+            direction: 'nurseToDoctor',
+            message:   'موعد جديد: ' + (appointment.PatientName || ''),
+            read:      false,
+            createdAt: window._fb.serverTimestamp()
+          }).then(function(alertRef) {
+            var payload = { type: 'newManualAppt', direction: 'nurseToDoctor',
+                            message: 'موعد جديد: ' + (appointment.PatientName || ''),
+                            ts: Date.now(), docId: alertRef.id };
+            try { new BroadcastChannel('doctorAlerts').postMessage(payload); } catch(e) {}
+          }).catch(function(){});
+        })
         .catch(function(e) { showToast('فشل الحفظ: ' + e.code,'error'); console.error(e); });
     }
 
