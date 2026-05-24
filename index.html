@@ -4553,6 +4553,26 @@
       p.totalVisits = p.appointments.length;
       p.lastVisit   = visitDate;
       updatePatient(p.id, p);
+
+      // ── إنشاء سجل في appointments ليراه الطبيب ──
+      const apptId = 'appt_' + Date.now() + '_' + Math.random().toString(36).substr(2,6);
+      const apptRecord = {
+        id:             apptId,
+        PatientName:    p.name  || p.PatientName || '',
+        Phone:          p.phone || p.Phone       || '',
+        BirthDate:      p.birthDate || p.BirthDate || '',
+        Address:        p.address   || p.Address   || '',
+        Date:           visitDate,
+        Slot:           slot,
+        VisitType:      type,
+        Status:         'Visited',
+        linkedPatientId: p.id,
+        source:         'nurse_patients_book'
+      };
+      window._fb.setDoc(window._fb.docRef('appointments', apptId),
+        Object.assign({}, apptRecord, { createdAt: window._fb.serverTimestamp() })
+      ).catch(function(e) { console.error('[addVisit→appointments]', e); });
+
       document.getElementById('addVisitModal').classList.add('hidden');
       showToast('تمت إضافة الزيارة','success');
     }
@@ -5402,6 +5422,16 @@
           appointments:[{date:todayStr,slot,visitType:type,dayName:daysAr[today.getDay()]}],
           firstVisit:todayStr,lastVisit:todayStr,totalVisits:1};
         savePatient(newPatient);
+
+        // ── إنشاء سجل في appointments ليراه الطبيب ──
+        const apptId2 = 'appt_' + Date.now() + '_' + Math.random().toString(36).substr(2,6);
+        window._fb.setDoc(window._fb.docRef('appointments', apptId2), {
+          id: apptId2, PatientName: name, Phone: phone, BirthDate: birth, Address: addr,
+          Date: todayStr, Slot: slot, VisitType: type,
+          Status: 'Visited', linkedPatientId: patientId, source: 'nurse_patients_book',
+          createdAt: window._fb.serverTimestamp()
+        }).catch(function(e){ console.error('[patientBook→appointments]', e); });
+
         document.getElementById('patientBookModal').classList.add('hidden');
         ['patientBookName','patientBookPhone','patientBookBirthDate','patientBookAddress','patientBookVisitType'].forEach(id=>document.getElementById(id).value='');
       });
